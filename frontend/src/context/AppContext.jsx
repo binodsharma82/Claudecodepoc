@@ -17,6 +17,10 @@ export function AppProvider({ children }) {
     api.territories().then(setTerritories).catch(console.error)
   }, [])
 
+  useEffect(() => {
+    localStorage.setItem('iq2020_bu', bu)
+  }, [bu])
+
   const periods = [
     { value: '2025-01', label: 'Jan 2025' },
     { value: '2025-02', label: 'Feb 2025' },

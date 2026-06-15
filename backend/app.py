@@ -85,44 +85,88 @@ def _enforce_territory(requested: str) -> str:
     return u["territory"]
 
 
+def _resolve_bu() -> str | None:
+    """
+    Resolves the effective BU for the current request.
+    - Reads ?bu= from the query string.
+    - For Field Reps: clamps to their authorised BU list; defaults to first.
+    - For DM/Admin: trusts the requested value as-is.
+    - No param → None (no BU-level filter applied).
+    """
+    requested = request.args.get("bu", "").strip()
+    if not requested:
+        return None
+    u = _session_user()
+    if u is None or u["role"] in ("Admin", "Dist Manager"):
+        return requested
+    allowed = u.get("bus", [])
+    return requested if requested in allowed else (allowed[0] if allowed else None)
+
+
+def _effective_products() -> set[str] | None:
+    """
+    Products accessible for this request, considering both the selected BU
+    and the user's overall BU authorisation. None = no restriction.
+    """
+    bu = _resolve_bu()
+    u = _session_user()
+    if bu:
+        if bu == "Vaccines":
+            return set()           # Vaccines BU has no pharma products
+        bu_prods = BU_PRODUCTS.get(bu, set())
+        if u is None or u["role"] in ("Admin", "Dist Manager"):
+            return bu_prods or None
+        # Rep: intersect BU products with their overall authorised products
+        all_auth: set[str] = set()
+        for b in u.get("bus", []):
+            all_auth |= BU_PRODUCTS.get(b, set())
+        intersection = bu_prods & all_auth
+        return intersection or None
+    # No BU filter → fall back to user's full authorised product set
+    if u is None or u["role"] in ("Admin", "Dist Manager"):
+        return None
+    result: set[str] = set()
+    for b in u.get("bus", []):
+        result |= BU_PRODUCTS.get(b, set())
+    return result or None
+
+
+def _effective_specialties() -> set[str] | None:
+    """Specialties accessible for this request. None = no restriction."""
+    bu = _resolve_bu()
+    u = _session_user()
+    if bu:
+        bu_specs = BU_SPECIALTIES.get(bu, set())
+        if u is None or u["role"] in ("Admin", "Dist Manager"):
+            return bu_specs or None
+        all_auth: set[str] = set()
+        for b in u.get("bus", []):
+            all_auth |= BU_SPECIALTIES.get(b, set())
+        intersection = bu_specs & all_auth
+        return intersection or None
+    if u is None or u["role"] in ("Admin", "Dist Manager"):
+        return None
+    result: set[str] = set()
+    for b in u.get("bus", []):
+        result |= BU_SPECIALTIES.get(b, set())
+    return result or None
+
+
 def _allowed_products() -> set[str] | None:
-    """
-    Returns the set of product families the current user may see.
-    None means no restriction (all products visible).
-    """
+    """Legacy helper — returns all products across user's BUs (ignores selected BU)."""
     u = _session_user()
-    if u is None:
+    if u is None or u["role"] in ("Admin", "Dist Manager"):
         return None
-    if u["role"] in ("Admin", "Dist Manager"):
-        return None
-    products: set[str] = set()
-    for bu in u.get("bus", []):
-        products |= BU_PRODUCTS.get(bu, set())
-    return products or None
-
-
-def _allowed_specialties() -> set[str] | None:
-    """
-    Returns the set of HCP specialties accessible to the current user,
-    derived from their BU assignments. None means no restriction.
-    """
-    u = _session_user()
-    if u is None:
-        return None
-    if u["role"] in ("Admin", "Dist Manager"):
-        return None
-    specs: set[str] = set()
-    for bu in u.get("bus", []):
-        specs |= BU_SPECIALTIES.get(bu, set())
-    return specs or None
+    result: set[str] = set()
+    for b in u.get("bus", []):
+        result |= BU_PRODUCTS.get(b, set())
+    return result or None
 
 
 def _check_bu_access(bu: str) -> bool:
     """Returns True when the current user is authorised for the given BU."""
     u = _session_user()
-    if u is None:
-        return True
-    if u["role"] in ("Admin", "Dist Manager"):
+    if u is None or u["role"] in ("Admin", "Dist Manager"):
         return True
     return bu in u.get("bus", [])
 
@@ -192,7 +236,7 @@ def trend():
 
     months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
     labels = [f"{months[int(p[-2:])-1]} 25" for p in g["PeriodDate"]]
-    allowed = _allowed_products()
+    allowed = _effective_products()
     zero = [0] * len(g)
     return jsonify({
         "labels":      labels,
@@ -257,7 +301,7 @@ def product_share():
     g = m.groupby("ProductFamily").agg(
         TRx=("TRx", "sum"), NRx=("NRx", "sum"), MktTRx=("Market_TRx", "sum")
     ).reset_index()
-    allowed = _allowed_products()
+    allowed = _effective_products()
     if allowed is not None:
         g = g[g["ProductFamily"].isin(allowed)]
     total = g["TRx"].sum()
@@ -295,7 +339,7 @@ def hcp_tracker():
     h = df("KPI_HCP360")
     if territory and territory != "ALL":
         h = h[h["TerritoryID"] == territory]
-    allowed_specs = _allowed_specialties()
+    allowed_specs = _effective_specialties()
     if allowed_specs is not None:
         h = h[h["Specialty"].str.upper().isin(allowed_specs)]
 
@@ -398,7 +442,7 @@ def hcp_concentration():
     h = df("KPI_HCP360")
     if territory and territory != "ALL":
         h = h[h["TerritoryID"] == territory]
-    allowed_specs = _allowed_specialties()
+    allowed_specs = _effective_specialties()
     if allowed_specs is not None:
         h = h[h["Specialty"].str.upper().isin(allowed_specs)]
 
@@ -478,6 +522,9 @@ def alerts():
     if territory != "ALL":
         h = h[h["TerritoryID"] == territory]
         kpi = kpi[kpi["TerritoryID"] == territory]
+    allowed_specs = _effective_specialties()
+    if allowed_specs is not None:
+        h = h[h["Specialty"].str.upper().isin(allowed_specs)]
     out = []
 
     for _, r in h.nlargest(4, "CM_New_Patients").iterrows():
@@ -520,7 +567,7 @@ def alerts():
 @app.get("/api/speakers")
 def speakers():
     s = df("Dim_Speaker")
-    allowed = _allowed_products()
+    allowed = _effective_products()
     if allowed is not None:
         def _has_product(cert_str):
             certs = {p.strip() for p in str(cert_str).split(",")}
