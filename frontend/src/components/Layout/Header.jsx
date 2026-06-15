@@ -23,7 +23,7 @@ const SEL = {
 }
 
 export default function Header() {
-  const { territory, setTerritory, period, setPeriod, bu, setBu, territories, periods } = useApp()
+  const { territory, setTerritory, period, setPeriod, bu, setBu, territories, periods, allowedBus } = useApp()
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -53,9 +53,9 @@ export default function Header() {
         </span>
       </div>
 
-      {/* ── BU pills ── */}
+      {/* ── BU pills — only show BUs the logged-in user is authorised for ── */}
       <div style={{ display: 'flex', gap: 4 }}>
-        {['AIR', 'SBU', 'Vaccines'].map(b => (
+        {['AIR', 'SBU', 'Vaccines'].filter(b => allowedBus.includes(b)).map(b => (
           <button
             key={b}
             onClick={() => setBu(b)}

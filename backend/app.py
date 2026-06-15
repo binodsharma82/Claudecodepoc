@@ -57,6 +57,13 @@ BU_PRODUCTS: dict[str, set[str]] = {
     "Vaccines": set(),   # vaccines have their own endpoint
 }
 
+# ── BU → HCP specialty mapping ────────────────────────────────────────
+BU_SPECIALTIES: dict[str, set[str]] = {
+    "AIR":      {"PSYCHIATRY", "NEUROLOGY"},
+    "SBU":      {"PSYCHIATRY", "INTERNAL MEDICINE", "GERIATRICS"},
+    "Vaccines": {"FAMILY PRACTICE", "INTERNAL MEDICINE", "GERIATRICS", "CARDIOLOGY"},
+}
+
 
 # ── Session helpers ───────────────────────────────────────────────────
 def _session_user() -> dict | None:
@@ -92,6 +99,22 @@ def _allowed_products() -> set[str] | None:
     for bu in u.get("bus", []):
         products |= BU_PRODUCTS.get(bu, set())
     return products or None
+
+
+def _allowed_specialties() -> set[str] | None:
+    """
+    Returns the set of HCP specialties accessible to the current user,
+    derived from their BU assignments. None means no restriction.
+    """
+    u = _session_user()
+    if u is None:
+        return None
+    if u["role"] in ("Admin", "Dist Manager"):
+        return None
+    specs: set[str] = set()
+    for bu in u.get("bus", []):
+        specs |= BU_SPECIALTIES.get(bu, set())
+    return specs or None
 
 
 def _check_bu_access(bu: str) -> bool:
@@ -272,6 +295,9 @@ def hcp_tracker():
     h = df("KPI_HCP360")
     if territory and territory != "ALL":
         h = h[h["TerritoryID"] == territory]
+    allowed_specs = _allowed_specialties()
+    if allowed_specs is not None:
+        h = h[h["Specialty"].str.upper().isin(allowed_specs)]
 
     result = []
     for _, r in h.iterrows():
@@ -372,6 +398,9 @@ def hcp_concentration():
     h = df("KPI_HCP360")
     if territory and territory != "ALL":
         h = h[h["TerritoryID"] == territory]
+    allowed_specs = _allowed_specialties()
+    if allowed_specs is not None:
+        h = h[h["Specialty"].str.upper().isin(allowed_specs)]
 
     sorted_h = h.sort_values("CM_Total_TRx", ascending=False).reset_index(drop=True)
     n = len(sorted_h)
