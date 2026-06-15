@@ -3,14 +3,23 @@ Sample IQ2020 Model — Flask API
 Serves all data endpoints from /sourcedata Excel files.
 """
 import math
+import os
 import random
+from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "iq2020-poc-dev-secret-2025")
+app.permanent_session_lifetime = timedelta(hours=24)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,    # HTTPS; local dev gets no-auth fallback
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 CORS(app)
 
 DATA = Path(__file__).parent.parent / "sourcedata"
@@ -41,6 +50,26 @@ def _flt(v, n=2) -> float:
         return 0.0
 
 
+# ── Session helpers ───────────────────────────────────────────────────
+def _session_user() -> dict | None:
+    """Return the authenticated user dict from the session, or None."""
+    return session.get("user")
+
+
+def _enforce_territory(requested: str) -> str:
+    """
+    For Field Reps: ignore the query param and return their own territory.
+    For Dist Managers and Admins: honour the requested value.
+    No session (local dev / unauthenticated): pass through unchanged.
+    """
+    u = _session_user()
+    if u is None:
+        return requested
+    if u["role"] in ("Admin", "Dist Manager"):
+        return requested
+    return u["territory"]
+
+
 # ── Reference ────────────────────────────────────────────────────────
 @app.get("/api/territories")
 def territories():
@@ -54,7 +83,7 @@ def territories():
 # ── KPI Summary Cards ─────────────────────────────────────────────────
 @app.get("/api/kpis")
 def kpis():
-    territory = request.args.get("territory", "ALL")
+    territory = _enforce_territory(request.args.get("territory", "ALL"))
     period = request.args.get("period", "2025-06")
 
     kpi = df("KPI_Territory")
@@ -92,7 +121,7 @@ def kpis():
 # ── Monthly Trend ─────────────────────────────────────────────────────
 @app.get("/api/trend")
 def trend():
-    territory = request.args.get("territory", "ALL")
+    territory = _enforce_territory(request.args.get("territory", "ALL"))
     kpi = df("KPI_Territory")
     if territory and territory != "ALL":
         kpi = kpi[kpi["TerritoryID"] == territory]
@@ -123,9 +152,12 @@ def trend():
 @app.get("/api/territory-perf")
 def territory_perf():
     period = request.args.get("period", "2025-06")
+    territory = _enforce_territory("ALL")
     kpi = df("KPI_Territory")
     reps = df("Dim_SalesRep")[["TerritoryID", "RepFullName"]].drop_duplicates()
     m = kpi[kpi["PeriodDate"] == period].merge(reps, on="TerritoryID", how="left")
+    if territory != "ALL":
+        m = m[m["TerritoryID"] == territory]
 
     result = []
     for _, r in m.iterrows():
@@ -157,7 +189,7 @@ def territory_perf():
 @app.get("/api/product-share")
 def product_share():
     period = request.args.get("period", "2025-06")
-    territory = request.args.get("territory", "ALL")
+    territory = _enforce_territory(request.args.get("territory", "ALL"))
     rx = df("Fact_Prescriptions")
     m = rx[rx["PeriodDate"] == period]
     if territory and territory != "ALL":
@@ -197,7 +229,7 @@ def payer_mix():
 # ── HCP Tracker ───────────────────────────────────────────────────────
 @app.get("/api/hcp-tracker")
 def hcp_tracker():
-    territory = request.args.get("territory", "ALL")
+    territory = _enforce_territory(request.args.get("territory", "ALL"))
     h = df("KPI_HCP360")
     if territory and territory != "ALL":
         h = h[h["TerritoryID"] == territory]
@@ -259,7 +291,11 @@ def hcp_profile(cid):
             "nrx": [_int(sub.loc[p, "NRx"]) if p in sub.index else 0 for p in periods],
         }
 
-    ch = cls[cls["CustomerID"] == cid].sort_values("CallDate", ascending=False).head(8)
+    u = _session_user()
+    calls_filter = cls["CustomerID"] == cid
+    if u and u["role"] == "Field Rep":
+        calls_filter = calls_filter & (cls["TerritoryID"] == u["territory"])
+    ch = cls[calls_filter].sort_values("CallDate", ascending=False).head(8)
     calls_out = [
         {"date": str(c["CallDate"]), "type": c["CallType"],
          "outcome": c["CallOutcome"], "product": c["ProductFamily"],
@@ -292,7 +328,7 @@ def hcp_profile(cid):
 # ── HCP Prescriber Concentration (Pareto / IQ2020 style) ─────────────
 @app.get("/api/hcp-concentration")
 def hcp_concentration():
-    territory = request.args.get("territory", "ALL")
+    territory = _enforce_territory(request.args.get("territory", "ALL"))
 
     h = df("KPI_HCP360")
     if territory and territory != "ALL":
@@ -368,8 +404,12 @@ def decile():
 @app.get("/api/alerts")
 def alerts():
     period = request.args.get("period", "2025-06")
+    territory = _enforce_territory(request.args.get("territory", "ALL"))
     h = df("KPI_HCP360")
     kpi = df("KPI_Territory")
+    if territory != "ALL":
+        h = h[h["TerritoryID"] == territory]
+        kpi = kpi[kpi["TerritoryID"] == territory]
     out = []
 
     for _, r in h.nlargest(4, "CM_New_Patients").iterrows():
@@ -469,6 +509,13 @@ def auth_login():
     user = USERS.get(username)
     if not user or user["password"] != password:
         return jsonify({"error": "Invalid username or password"}), 401
+    session.clear()
+    session.permanent = True
+    session["user"] = {
+        "username":  username,
+        "territory": user["territory"],
+        "role":      user["role"],
+    }
     return jsonify({
         "username": username,
         "name":     user["name"],
@@ -476,6 +523,12 @@ def auth_login():
         "territory":user["territory"],
         "initials": "".join(p[0].upper() for p in user["name"].split()[:2]),
     })
+
+
+@app.post("/api/auth/logout")
+def auth_logout():
+    session.clear()
+    return jsonify({"ok": True})
 
 
 @app.get("/api/auth/users")
