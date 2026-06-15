@@ -53,7 +53,7 @@ function ParetoTooltip({ active, payload }) {
 }
 
 export default function Executive() {
-  const { territory, period } = useApp()
+  const { territory, period, bu } = useApp()
 
   const [kpis,    setKpis]    = useState(null)
   const [trend,   setTrend]   = useState(null)
@@ -66,17 +66,17 @@ export default function Executive() {
 
     /* ── Independent calls — one failure won't block the rest ── */
     Promise.allSettled([
-      api.kpis({ territory, period }),
-      api.trend({ territory }),
-      api.payerMix({ period }),
-      api.hcpConcentration({ territory }),
+      api.kpis({ territory, period, bu }),
+      api.trend({ territory, bu }),
+      api.payerMix({ period, bu }),
+      api.hcpConcentration({ territory, bu }),
     ]).then(([k, t, p, c]) => {
       if (k.status === 'fulfilled') setKpis(k.value)
       if (t.status === 'fulfilled') setTrend(t.value)
       if (p.status === 'fulfilled') setPayer(p.value)
       if (c.status === 'fulfilled') setConc(c.value)
     }).finally(() => setLoading(false))
-  }, [territory, period])
+  }, [territory, period, bu])
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', gap: 12, color: '#94a3b8' }}>

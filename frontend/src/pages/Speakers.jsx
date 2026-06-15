@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api/client'
+import { useApp } from '../context/AppContext'
 
 const TIER_CLASS = { Gold: 'tier-gold', Silver: 'tier-silver', Bronze: 'tier-bronze' }
 
 export default function Speakers() {
+  const { bu } = useApp()
   const [speakers, setSpeakers] = useState([])
   const [loading, setLoading] = useState(true)
   const [sortKey, setSortKey] = useState('programs')
   const [sortDir, setSortDir] = useState('desc')
 
   useEffect(() => {
-    api.speakers().then(setSpeakers).finally(() => setLoading(false))
-  }, [])
+    setLoading(true)
+    api.speakers({ bu }).then(setSpeakers).finally(() => setLoading(false))
+  }, [bu])
 
   if (loading) return (
     <div className="flex items-center justify-center py-20"><div className="iq-spinner" /></div>

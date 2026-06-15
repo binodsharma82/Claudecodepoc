@@ -48,7 +48,7 @@ const TD_BASE = {
 }
 
 export default function HCPTracker() {
-  const { territory } = useApp()
+  const { territory, bu } = useApp()
   const navigate = useNavigate()
   const [hcps,         setHcps]         = useState([])
   const [decile,       setDecile]       = useState(null)
@@ -62,13 +62,13 @@ export default function HCPTracker() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.allSettled([api.hcpTracker({ territory }), api.decile()])
+    Promise.allSettled([api.hcpTracker({ territory, bu }), api.decile({ bu })])
       .then(([h, d]) => {
         if (h.status === 'fulfilled') setHcps(h.value)
         if (d.status === 'fulfilled') setDecile(d.value)
       })
       .finally(() => setLoading(false))
-  }, [territory])
+  }, [territory, bu])
 
   const segments = useMemo(() => ['ALL', ...new Set(hcps.map(h => h.segment))], [hcps])
   const deciles  = ['ALL','1','2','3','4','5','6','7','8','9','10']

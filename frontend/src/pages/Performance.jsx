@@ -48,7 +48,7 @@ const TD_BASE = {
 }
 
 export default function Performance() {
-  const { territory, period } = useApp()
+  const { territory, period, bu } = useApp()
   const [terrPerf, setTerrPerf] = useState([])
   const [prodShare, setProdShare] = useState([])
   const [loading,   setLoading]   = useState(true)
@@ -59,13 +59,13 @@ export default function Performance() {
   useEffect(() => {
     setLoading(true)
     Promise.allSettled([
-      api.territoryPerf({ period }),
-      api.productShare({ period, territory }),
+      api.territoryPerf({ period, bu }),
+      api.productShare({ period, territory, bu }),
     ]).then(([t, p]) => {
       if (t.status === 'fulfilled') setTerrPerf(t.value)
       if (p.status === 'fulfilled') setProdShare(p.value)
     }).finally(() => setLoading(false))
-  }, [territory, period])
+  }, [territory, period, bu])
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px' }}>

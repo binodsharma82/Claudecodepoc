@@ -43,14 +43,14 @@ function AlertCard({ a }) {
 }
 
 export default function Alerts() {
-  const { period } = useApp()
+  const { period, bu } = useApp()
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    api.alerts({ period }).then(setAlerts).finally(() => setLoading(false))
-  }, [period])
+    api.alerts({ period, bu }).then(setAlerts).finally(() => setLoading(false))
+  }, [period, bu])
 
   if (loading) return (
     <div className="flex items-center justify-center py-20"><div className="iq-spinner" /></div>
