@@ -50,6 +50,14 @@ def _flt(v, n=2) -> float:
         return 0.0
 
 
+# ── BU → product family mapping ───────────────────────────────────────
+BU_PRODUCTS: dict[str, set[str]] = {
+    "AIR":      {"NEXOLID", "VERITONEX"},
+    "SBU":      {"CLAROZEPT", "DEPTRAZOL"},
+    "Vaccines": set(),   # vaccines have their own endpoint
+}
+
+
 # ── Session helpers ───────────────────────────────────────────────────
 def _session_user() -> dict | None:
     """Return the authenticated user dict from the session, or None."""
@@ -68,6 +76,32 @@ def _enforce_territory(requested: str) -> str:
     if u["role"] in ("Admin", "Dist Manager"):
         return requested
     return u["territory"]
+
+
+def _allowed_products() -> set[str] | None:
+    """
+    Returns the set of product families the current user may see.
+    None means no restriction (all products visible).
+    """
+    u = _session_user()
+    if u is None:
+        return None
+    if u["role"] in ("Admin", "Dist Manager"):
+        return None
+    products: set[str] = set()
+    for bu in u.get("bus", []):
+        products |= BU_PRODUCTS.get(bu, set())
+    return products or None
+
+
+def _check_bu_access(bu: str) -> bool:
+    """Returns True when the current user is authorised for the given BU."""
+    u = _session_user()
+    if u is None:
+        return True
+    if u["role"] in ("Admin", "Dist Manager"):
+        return True
+    return bu in u.get("bus", [])
 
 
 # ── Reference ────────────────────────────────────────────────────────
@@ -135,16 +169,18 @@ def trend():
 
     months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
     labels = [f"{months[int(p[-2:])-1]} 25" for p in g["PeriodDate"]]
+    allowed = _allowed_products()
+    zero = [0] * len(g)
     return jsonify({
-        "labels": labels,
-        "trx": [_int(v) for v in g["TRx"]],
-        "nrx": [_int(v) for v in g["NRx"]],
-        "nexolid": [_int(v) for v in g["NEXOLID"]],
-        "veritonex": [_int(v) for v in g["VERITONEX"]],
-        "clarozept": [_int(v) for v in g["CLAROZEPT"]],
-        "deptrazol": [_int(v) for v in g["DEPTRAZOL"]],
-        "new_patients": [_int(v) for v in g["NewPts"]],
-        "calls": [_int(v) for v in g["Calls"]],
+        "labels":      labels,
+        "trx":         [_int(v) for v in g["TRx"]],
+        "nrx":         [_int(v) for v in g["NRx"]],
+        "nexolid":     [_int(v) for v in g["NEXOLID"]]   if allowed is None or "NEXOLID"   in allowed else zero,
+        "veritonex":   [_int(v) for v in g["VERITONEX"]] if allowed is None or "VERITONEX" in allowed else zero,
+        "clarozept":   [_int(v) for v in g["CLAROZEPT"]] if allowed is None or "CLAROZEPT" in allowed else zero,
+        "deptrazol":   [_int(v) for v in g["DEPTRAZOL"]] if allowed is None or "DEPTRAZOL" in allowed else zero,
+        "new_patients":[_int(v) for v in g["NewPts"]],
+        "calls":       [_int(v) for v in g["Calls"]],
     })
 
 
@@ -198,6 +234,9 @@ def product_share():
     g = m.groupby("ProductFamily").agg(
         TRx=("TRx", "sum"), NRx=("NRx", "sum"), MktTRx=("Market_TRx", "sum")
     ).reset_index()
+    allowed = _allowed_products()
+    if allowed is not None:
+        g = g[g["ProductFamily"].isin(allowed)]
     total = g["TRx"].sum()
     return jsonify([
         {
@@ -452,6 +491,12 @@ def alerts():
 @app.get("/api/speakers")
 def speakers():
     s = df("Dim_Speaker")
+    allowed = _allowed_products()
+    if allowed is not None:
+        def _has_product(cert_str):
+            certs = {p.strip() for p in str(cert_str).split(",")}
+            return bool(certs & allowed)
+        s = s[s["CertifiedProducts"].apply(_has_product)]
     return jsonify([
         {"sid": r["SpeakerID"], "name": r["SpeakerName"], "specialty": r["Specialty"],
          "tier": r["SpeakerTier"], "programs": _int(r["Programs_YTD"]),
@@ -464,6 +509,8 @@ def speakers():
 # ── Vaccines BU ───────────────────────────────────────────────────────
 @app.get("/api/vaccines")
 def vaccines():
+    if not _check_bu_access("Vaccines"):
+        return jsonify({"error": "Not authorised for Vaccines BU"}), 403
     kpi = df("KPI_Territory")
     VAX = {
         "Shingrix (RZV)": {"base": 0.35, "color": "#e15759"},
@@ -493,11 +540,11 @@ def vaccines():
 
 # ── Auth — test users (POC only, no production secrets) ──────────────
 USERS = {
-    "jsmith": {"password": "Pass1234", "name": "John Smith",   "role": "Field Rep",    "territory": "T001"},
-    "mjones": {"password": "Pass1234", "name": "Mary Jones",   "role": "Dist Manager", "territory": "ALL"},
-    "rlee":   {"password": "Pass1234", "name": "Robert Lee",   "role": "Field Rep",    "territory": "T002"},
-    "schen":  {"password": "Pass1234", "name": "Sandra Chen",  "role": "Field Rep",    "territory": "T003"},
-    "admin":  {"password": "Admin123", "name": "Admin User",   "role": "Admin",        "territory": "ALL"},
+    "jsmith": {"password": "Pass1234", "name": "John Smith",  "role": "Field Rep",    "territory": "T001", "bus": ["AIR"]},
+    "mjones": {"password": "Pass1234", "name": "Mary Jones",  "role": "Dist Manager", "territory": "ALL",  "bus": ["AIR", "SBU", "Vaccines"]},
+    "rlee":   {"password": "Pass1234", "name": "Robert Lee",  "role": "Field Rep",    "territory": "T002", "bus": ["SBU"]},
+    "schen":  {"password": "Pass1234", "name": "Sandra Chen", "role": "Field Rep",    "territory": "T003", "bus": ["AIR", "SBU"]},
+    "admin":  {"password": "Admin123", "name": "Admin User",  "role": "Admin",        "territory": "ALL",  "bus": ["AIR", "SBU", "Vaccines"]},
 }
 
 
@@ -515,13 +562,15 @@ def auth_login():
         "username":  username,
         "territory": user["territory"],
         "role":      user["role"],
+        "bus":       user.get("bus", []),
     }
     return jsonify({
-        "username": username,
-        "name":     user["name"],
-        "role":     user["role"],
-        "territory":user["territory"],
-        "initials": "".join(p[0].upper() for p in user["name"].split()[:2]),
+        "username":  username,
+        "name":      user["name"],
+        "role":      user["role"],
+        "territory": user["territory"],
+        "bus":       user.get("bus", []),
+        "initials":  "".join(p[0].upper() for p in user["name"].split()[:2]),
     })
 
 
@@ -535,7 +584,8 @@ def auth_logout():
 def auth_users():
     """Returns demo credential list for the login helper panel."""
     return jsonify([
-        {"username": u, "role": d["role"], "name": d["name"], "password": d["password"]}
+        {"username": u, "role": d["role"], "name": d["name"],
+         "password": d["password"], "bus": d.get("bus", [])}
         for u, d in USERS.items()
     ])
 
