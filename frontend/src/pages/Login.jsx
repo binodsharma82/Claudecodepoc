@@ -76,7 +76,7 @@ export default function Login() {
             PC
           </div>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#e2e8f0', margin: 0 }}>
-            PharmaCore IQ2020
+            Pharma CTED - Field Tech
           </h1>
           <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 6 }}>
             Field Intelligence Platform · Sign in to continue
@@ -266,7 +266,7 @@ export default function Login() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: '0.72rem', color: '#334155', marginTop: 20 }}>
-          PharmaCore Inc · IQ2020 POC · {new Date().getFullYear()}
+          Pharma CTED · Field Tech · {new Date().getFullYear()}
         </p>
       </div>
     </div>
