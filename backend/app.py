@@ -197,10 +197,34 @@ def kpis():
     if territory and territory != "ALL":
         prev = prev[prev["TerritoryID"] == territory]
 
-    trx_now = _int(m["CM_TRx"].sum())
-    trx_prev = _int(prev["CM_TRx"].sum())
-    nrx_now = _int(m["CM_NRx"].sum())
-    nrx_prev = _int(prev["CM_NRx"].sum())
+    bu = _resolve_bu()
+    _BU_TRX = {"AIR": ["NEXOLID_TRx", "VERITONEX_TRx"], "SBU": ["CLAROZEPT_TRx", "DEPTRAZOL_TRx"]}
+    _BU_NRX = {"AIR": ["NEXOLID_NRx", "VERITONEX_NRx"]}
+
+    if bu == "Vaccines":
+        trx_now = trx_prev = nrx_now = nrx_prev = 0
+    elif bu in _BU_TRX:
+        trx_now  = sum(_int(m[c].sum())    for c in _BU_TRX[bu] if c in m.columns)
+        trx_prev = sum(_int(prev[c].sum()) for c in _BU_TRX[bu] if c in prev.columns)
+        if bu in _BU_NRX:
+            nrx_now  = sum(_int(m[c].sum())    for c in _BU_NRX[bu] if c in m.columns)
+            nrx_prev = sum(_int(prev[c].sum()) for c in _BU_NRX[bu] if c in prev.columns)
+        else:
+            rx = df("Fact_Prescriptions")
+            prods = list(BU_PRODUCTS.get(bu, set()))
+            fn = rx[(rx["PeriodDate"] == period)      & rx["ProductFamily"].isin(prods)]
+            fp = rx[(rx["PeriodDate"] == prev_period) & rx["ProductFamily"].isin(prods)]
+            if territory and territory != "ALL":
+                fn = fn[fn["TerritoryID"] == territory]
+                fp = fp[fp["TerritoryID"] == territory]
+            nrx_now  = _int(fn["NRx"].sum())
+            nrx_prev = _int(fp["NRx"].sum())
+    else:
+        trx_now  = _int(m["CM_TRx"].sum())
+        trx_prev = _int(prev["CM_TRx"].sum())
+        nrx_now  = _int(m["CM_NRx"].sum())
+        nrx_prev = _int(prev["CM_NRx"].sum())
+
     calls_now = _int(m["CM_Calls"].sum())
     calls_prev = _int(prev["CM_Calls"].sum())
 
@@ -236,16 +260,45 @@ def trend():
 
     months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
     labels = [f"{months[int(p[-2:])-1]} 25" for p in g["PeriodDate"]]
+    bu = _resolve_bu()
     allowed = _effective_products()
     zero = [0] * len(g)
+
+    nex = [_int(v) for v in g["NEXOLID"]]
+    ver = [_int(v) for v in g["VERITONEX"]]
+    cla = [_int(v) for v in g["CLAROZEPT"]]
+    dep = [_int(v) for v in g["DEPTRAZOL"]]
+
+    if allowed is not None:
+        trx_data = [
+            (n if "NEXOLID"   in allowed else 0) +
+            (v if "VERITONEX" in allowed else 0) +
+            (c if "CLAROZEPT" in allowed else 0) +
+            (d if "DEPTRAZOL" in allowed else 0)
+            for n, v, c, d in zip(nex, ver, cla, dep)
+        ]
+    else:
+        trx_data = [_int(v) for v in g["TRx"]]
+
+    if bu == "Vaccines":
+        nrx_data = zero
+    elif allowed is not None and allowed:
+        rx = df("Fact_Prescriptions")
+        if territory and territory != "ALL":
+            rx = rx[rx["TerritoryID"] == territory]
+        nrx_map = rx[rx["ProductFamily"].isin(allowed)].groupby("PeriodDate")["NRx"].sum()
+        nrx_data = [_int(nrx_map.get(p, 0)) for p in g["PeriodDate"].tolist()]
+    else:
+        nrx_data = [_int(v) for v in g["NRx"]]
+
     return jsonify({
         "labels":      labels,
-        "trx":         [_int(v) for v in g["TRx"]],
-        "nrx":         [_int(v) for v in g["NRx"]],
-        "nexolid":     [_int(v) for v in g["NEXOLID"]]   if allowed is None or "NEXOLID"   in allowed else zero,
-        "veritonex":   [_int(v) for v in g["VERITONEX"]] if allowed is None or "VERITONEX" in allowed else zero,
-        "clarozept":   [_int(v) for v in g["CLAROZEPT"]] if allowed is None or "CLAROZEPT" in allowed else zero,
-        "deptrazol":   [_int(v) for v in g["DEPTRAZOL"]] if allowed is None or "DEPTRAZOL" in allowed else zero,
+        "trx":         trx_data,
+        "nrx":         nrx_data,
+        "nexolid":     nex   if allowed is None or "NEXOLID"   in allowed else zero,
+        "veritonex":   ver   if allowed is None or "VERITONEX" in allowed else zero,
+        "clarozept":   cla   if allowed is None or "CLAROZEPT" in allowed else zero,
+        "deptrazol":   dep   if allowed is None or "DEPTRAZOL" in allowed else zero,
         "new_patients":[_int(v) for v in g["NewPts"]],
         "calls":       [_int(v) for v in g["Calls"]],
     })
@@ -262,16 +315,39 @@ def territory_perf():
     if territory != "ALL":
         m = m[m["TerritoryID"] == territory]
 
+    bu = _resolve_bu()
+    _BU_TRX = {"AIR": ["NEXOLID_TRx", "VERITONEX_TRx"], "SBU": ["CLAROZEPT_TRx", "DEPTRAZOL_TRx"]}
+    _BU_NRX = {"AIR": ["NEXOLID_NRx", "VERITONEX_NRx"]}
+    sbu_nrx_map: dict = {}
+    if bu == "SBU":
+        rx = df("Fact_Prescriptions")
+        sbu_nrx_map = (
+            rx[(rx["PeriodDate"] == period) & rx["ProductFamily"].isin(BU_PRODUCTS["SBU"])]
+            .groupby("TerritoryID")["NRx"].sum().to_dict()
+        )
+
     result = []
     for _, r in m.iterrows():
+        if bu == "Vaccines":
+            trx_val = nrx_val = 0
+        elif bu in _BU_TRX:
+            trx_val = sum(_int(r[c]) for c in _BU_TRX[bu] if c in r.index)
+            if bu in _BU_NRX:
+                nrx_val = sum(_int(r[c]) for c in _BU_NRX[bu] if c in r.index)
+            else:
+                nrx_val = _int(sbu_nrx_map.get(r["TerritoryID"], 0))
+        else:
+            trx_val = _int(r["CM_TRx"])
+            nrx_val = _int(r["CM_NRx"])
+
         result.append({
             "tid": r["TerritoryID"],
             "name": r["TerritoryName"],
             "region": r["RegionName"],
             "area": r["AreaName"],
             "rep": r.get("RepFullName", "—"),
-            "trx": _int(r["CM_TRx"]),
-            "nrx": _int(r["CM_NRx"]),
+            "trx": trx_val,
+            "nrx": nrx_val,
             "trx_prior": _int(r["CM_TRx_Prior"]),
             "trx_chg": _flt(r["CM_TRx_Change_Pct"]),
             "share": _flt(r["CM_TRx_Share_Pct"]),
