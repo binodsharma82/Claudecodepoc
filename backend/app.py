@@ -57,11 +57,21 @@ BU_PRODUCTS: dict[str, set[str]] = {
     "Vaccines": set(),   # vaccines have their own endpoint
 }
 
-# ── BU → HCP specialty mapping ────────────────────────────────────────
+# ── BU → HCP specialty mapping (exclusive — no specialty in more than one BU) ─
 BU_SPECIALTIES: dict[str, set[str]] = {
-    "AIR":      {"PSYCHIATRY", "NEUROLOGY"},
+    "AIR":      {"NEUROLOGY", "ONCOLOGY"},
     "SBU":      {"PSYCHIATRY", "INTERNAL MEDICINE", "GERIATRICS"},
-    "Vaccines": {"FAMILY PRACTICE", "INTERNAL MEDICINE", "GERIATRICS", "CARDIOLOGY"},
+    "Vaccines": {"FAMILY PRACTICE", "CARDIOLOGY"},
+}
+
+# ── BU → per-HCP TRx/NRx product columns in KPI_HCP360 ───────────────
+BU_HCP_TRX_COLS: dict[str, list[str]] = {
+    "AIR": ["NEXOLID_TRx_CM", "VERITONEX_TRx_CM"],
+    "SBU": ["CLAROZEPT_TRx_CM", "DEPTRAZOL_TRx_CM"],
+}
+BU_HCP_NRX_COLS: dict[str, list[str]] = {
+    "AIR": ["NEXOLID_NRx_CM", "VERITONEX_NRx_CM"],
+    "SBU": ["CLAROZEPT_NRx_CM", "DEPTRAZOL_NRx_CM"],
 }
 
 
@@ -412,6 +422,7 @@ def payer_mix():
 @app.get("/api/hcp-tracker")
 def hcp_tracker():
     territory = _enforce_territory(request.args.get("territory", "ALL"))
+    bu = _resolve_bu()
     h = df("KPI_HCP360")
     if territory and territory != "ALL":
         h = h[h["TerritoryID"] == territory]
@@ -419,8 +430,13 @@ def hcp_tracker():
     if allowed_specs is not None:
         h = h[h["Specialty"].str.upper().isin(allowed_specs)]
 
+    trx_cols = BU_HCP_TRX_COLS.get(bu, [])
+    nrx_cols = BU_HCP_NRX_COLS.get(bu, [])
+
     result = []
     for _, r in h.iterrows():
+        bu_trx = sum(_int(r[c]) for c in trx_cols if c in r.index) if trx_cols else _int(r["CM_Total_TRx"])
+        bu_nrx = sum(_int(r[c]) for c in nrx_cols if c in r.index) if nrx_cols else _int(r["CM_Total_NRx"])
         result.append({
             "cid": r["CustomerID"],
             "name": r["DisplayName"],
@@ -430,8 +446,8 @@ def hcp_tracker():
             "territory": r["TerritoryID"],
             "decile": _int(r["DecileRank"]),
             "segment": r["Segment"],
-            "trx": _int(r["CM_Total_TRx"]),
-            "nrx": _int(r["CM_Total_NRx"]),
+            "trx": bu_trx,
+            "nrx": bu_nrx,
             "trx_chg": _flt(r["CM_TRx_Change_Pct"]),
             "share": _flt(r["YTD_TRx_Share_Avg"]),
             "calls_cm": _int(r["CM_Calls"]),
@@ -441,6 +457,8 @@ def hcp_tracker():
             "speaker": r["Is_Speaker"],
             "nexolid": _int(r["NEXOLID_TRx_CM"]),
             "veritonex": _int(r["VERITONEX_TRx_CM"]),
+            "clarozept": _int(r["CLAROZEPT_TRx_CM"]),
+            "deptrazol": _int(r["DEPTRAZOL_TRx_CM"]),
             "patients": _int(r["CM_Total_Patients"]),
         })
     return jsonify(sorted(result, key=lambda x: x["trx"], reverse=True))
@@ -514,17 +532,25 @@ def hcp_profile(cid):
 @app.get("/api/hcp-concentration")
 def hcp_concentration():
     territory = _enforce_territory(request.args.get("territory", "ALL"))
+    bu = _resolve_bu()
 
-    h = df("KPI_HCP360")
+    h = df("KPI_HCP360").copy()
     if territory and territory != "ALL":
         h = h[h["TerritoryID"] == territory]
     allowed_specs = _effective_specialties()
     if allowed_specs is not None:
         h = h[h["Specialty"].str.upper().isin(allowed_specs)]
 
-    sorted_h = h.sort_values("CM_Total_TRx", ascending=False).reset_index(drop=True)
+    trx_cols = BU_HCP_TRX_COLS.get(bu, [])
+    if trx_cols:
+        valid_cols = [c for c in trx_cols if c in h.columns]
+        h["_bu_trx"] = h[valid_cols].sum(axis=1) if valid_cols else h["CM_Total_TRx"]
+    else:
+        h["_bu_trx"] = h["CM_Total_TRx"]
+
+    sorted_h = h.sort_values("_bu_trx", ascending=False).reset_index(drop=True)
     n = len(sorted_h)
-    total_trx = float(sorted_h["CM_Total_TRx"].sum())
+    total_trx = float(sorted_h["_bu_trx"].sum())
 
     if n == 0 or total_trx == 0:
         return jsonify({"curve": [], "total_hcps": 0, "pct_hcps_80pct": 100, "decile_stats": []})
@@ -534,7 +560,7 @@ def hcp_concentration():
     curve = [{"x": 0.0, "pareto": 0.0, "equal": 0.0}]
     cum_trx = 0.0
     for i, row in sorted_h.iterrows():
-        cum_trx += max(0, _int(row.get("CM_Total_TRx", 0)))
+        cum_trx += max(0, _int(row.get("_bu_trx", 0)))
         if (i + 1) % step == 0 or i == n - 1:
             x = round((i + 1) / n * 100, 1)
             pareto = round(cum_trx / total_trx * 100, 1)
@@ -551,7 +577,7 @@ def hcp_concentration():
     decile_stats = []
     for d in [10, 9, 8, 7, 6]:
         grp = sorted_h[sorted_h["DecileRank"] == d]
-        d_trx = float(grp["CM_Total_TRx"].sum())
+        d_trx = float(grp["_bu_trx"].sum())
         decile_stats.append({
             "decile": d,
             "hcps": len(grp),
@@ -573,7 +599,13 @@ def hcp_concentration():
 def decile():
     hcp = df("Dim_MasterCustomer")
     calls = df("Fact_Calls")
-    hcp_only = hcp[hcp["CustomerType"] == "HCP"]
+    hcp_only = hcp[hcp["CustomerType"] == "HCP"].copy()
+
+    # Apply BU specialty filter so each BU shows its own HCP pool
+    allowed_specs = _effective_specialties()
+    if allowed_specs is not None:
+        hcp_only = hcp_only[hcp_only["Specialty"].str.upper().isin(allowed_specs)]
+
     called = set(calls["CustomerID"].unique())
     dist = hcp_only.groupby("DecileRank").size().reset_index(name="total")
     dist["called"] = (
@@ -601,6 +633,17 @@ def alerts():
     allowed_specs = _effective_specialties()
     if allowed_specs is not None:
         h = h[h["Specialty"].str.upper().isin(allowed_specs)]
+
+    bu = _resolve_bu()
+    trx_cols = BU_HCP_TRX_COLS.get(bu, [])
+    if trx_cols:
+        valid = [c for c in trx_cols if c in h.columns]
+        h = h.copy()
+        h["_bu_trx"] = h[valid].sum(axis=1) if valid else h["CM_Total_TRx"]
+    else:
+        h = h.copy()
+        h["_bu_trx"] = h["CM_Total_TRx"]
+
     out = []
 
     for _, r in h.nlargest(4, "CM_New_Patients").iterrows():
@@ -612,7 +655,7 @@ def alerts():
                     "msg": f"{_int(r['CM_New_Patients'])} new patients this month · Seg {r['Segment']} · Decile {_int(r['DecileRank'])}",
                     "action": "View Profile", "cid": r["CustomerID"]})
 
-    declining = h[h["CM_TRx_Change_Pct"] < -10].nsmallest(4, "CM_TRx_Change_Pct")
+    declining = h[h["CM_TRx_Change_Pct"] < -10].nsmallest(4, "CM_TRx_Change_Pct").copy()
     for _, r in declining.iterrows():
         out.append({"type": "DECLINE", "priority": "HIGH", "color": "#ef4444",
                     "icon": "trending-down",

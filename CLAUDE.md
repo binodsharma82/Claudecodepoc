@@ -202,9 +202,11 @@ Login sets a signed Flask session cookie. Since all `/api/*` calls go through Ve
 
 | BU | Products | HCP Specialties |
 |----|----------|-----------------|
-| AIR | NEXOLID, VERITONEX | Psychiatry, Neurology |
+| AIR | NEXOLID, VERITONEX | Neurology, Oncology |
 | SBU | CLAROZEPT, DEPTRAZOL | Psychiatry, Internal Medicine, Geriatrics |
-| Vaccines | (none — own endpoint) | Family Practice, Internal Medicine, Geriatrics, Cardiology |
+| Vaccines | (none — own endpoint) | Family Practice, Cardiology |
+
+> Specialties are **exclusive** — no specialty appears in more than one BU, ensuring HCP pools and TRx figures are fully separated. HCP-level TRx/NRx in all endpoints uses per-product columns (`NEXOLID_TRx_CM`, `CLAROZEPT_TRx_CM`, etc.) rather than `CM_Total_TRx` so BU switching produces distinct numbers even for HCPs who prescribe across product lines.
 
 - Field Reps → only see BU pills they are assigned to; data filtered by selected BU
 - Multi-BU reps (e.g. `schen`) → see both AIR and SBU pills; switching changes all data
