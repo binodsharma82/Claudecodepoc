@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/* ── IQ2020 Custom Theme ──────────────────────────────────────────── */
+@theme {
+  --color-iq-bg:      #07111f;
+  --color-iq-bg2:     #0c1a2e;
+  --color-iq-card:    #0f2040;
+  --color-iq-hover:   #162a50;
+  --color-iq-surface: #081425;
+  --color-iq-blue:    #1e68d4;
+  --color-iq-orange:  #F36F21;
+  --color-iq-green:   #22c55e;
+  --color-iq-red:     #ef4444;
+  --color-iq-yellow:  #f59e0b;
+  --color-iq-purple:  #a855f7;
+  --color-iq-cyan:    #06b6d4;
+  --color-iq-text:    #e2e8f0;
+  --color-iq-muted:   #94a3b8;
+  --color-iq-faint:   #64748b;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── CSS vars kept for Recharts and dynamic JS ───────────────────── */
+:root {
+  --bg:      #07111f;
+  --bg-2:    #0c1a2e;
+  --bg-card: #0f2040;
+  --bg-hover:#162a50;
+  --border:  rgba(255,255,255,0.07);
+  --border-2:rgba(255,255,255,0.12);
+  --text:    #e2e8f0;
+  --text-2:  #94a3b8;
+  --text-3:  #64748b;
+  --blue:    #1e68d4;
+  --orange:  #F36F21;
+  --green:   #22c55e;
+  --red:     #ef4444;
+  --yellow:  #f59e0b;
+  --purple:  #a855f7;
+  --cyan:    #06b6d4;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #07111f; background: var(--bg);   /* IE fallback first */
+  color: #e2e8f0;      color: var(--text);       /* IE fallback first */
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-2); }
+::-webkit-scrollbar-thumb { background: #2a4070; border-radius: 3px; }
+
+/* ── KPI accent top-border (dynamic color via CSS var) ───────────── */
+.kpi-accent::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent-color, var(--blue));
+  border-radius: 12px 12px 0 0;
+}
+
+/* ── Decile circles (data-driven, must stay CSS) ─────────────────── */
+.decile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.decile-1,.decile-2  { background:rgba(239,68,68,0.2);  color:#f87171; }
+.decile-3,.decile-4  { background:rgba(249,115,22,0.2); color:#fb923c; }
+.decile-5,.decile-6  { background:rgba(245,158,11,0.2); color:#fbbf24; }
+.decile-7,.decile-8  { background:rgba(34,197,94,0.2);  color:#4ade80; }
+.decile-9,.decile-10 { background:rgba(30,104,212,0.2); color:#60a5fa; }
+
+/* ── Speaker tier badges ────────────────────────────────────────── */
+.tier-gold   { background:rgba(245,158,11,0.2);   color:#fbbf24; }
+.tier-silver { background:rgba(148,163,184,0.15); color:#cbd5e1; }
+.tier-bronze { background:rgba(205,127,50,0.15);  color:#c97b3a; }
+
+/* ── Spinner ────────────────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.iq-spinner {
+  width: 28px; height: 28px;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ── Grid layouts (arbitrary Tailwind values don't parse nested parens) */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.vax-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Recharts overrides ─────────────────────────────────────────── */
+.recharts-tooltip-wrapper { z-index: 10; }
+.recharts-default-tooltip {
+  background: #112035 !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 8px !important;
+}
+.recharts-tooltip-label  { color:#94a3b8 !important; font-size:0.78rem !important; }
+.recharts-tooltip-item   { font-size:0.82rem !important; }
+.recharts-cartesian-axis-tick-value { fill:#94a3b8; font-size:11px; }
+.recharts-legend-item-text { color:#94a3b8 !important; font-size:0.78rem !important; }

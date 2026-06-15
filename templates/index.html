@@ -1,0 +1,1373 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sample IQ2020 Model</title>
+
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+<!-- DataTables -->
+<link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+<style>
+/* ── Base ─────────────────────────────────────────────────────── */
+:root {
+  --gsk-orange:  #F36F21;
+  --gsk-green:   #00A651;
+  --gsk-navy:    #162056;
+  --iq-dark:     #0C1E3D;
+  --iq-blue:     #1557A0;
+  --iq-light-bg: #F4F6FA;
+  --iq-border:   #DDE3EE;
+  --text-dark:   #1A2640;
+  --text-muted:  #6B7A94;
+}
+* { font-family: 'Inter', sans-serif; }
+body { background: var(--iq-light-bg); color: var(--text-dark); font-size: 13px; margin: 0; overflow-x: hidden; }
+
+/* ── Header ───────────────────────────────────────────────────── */
+#app-header {
+  background: var(--iq-dark);
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+.gsk-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.header-title {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border-left: 2px solid rgba(255,255,255,0.25);
+  padding-left: 12px;
+  margin-left: 4px;
+}
+.header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bu-pill {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 3px 14px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.bu-pill.active {
+  background: var(--gsk-orange);
+  border-color: var(--gsk-orange);
+}
+.bu-pill:hover:not(.active) { background: rgba(255,255,255,0.18); }
+.header-user {
+  color: rgba(255,255,255,0.75);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.header-user i { font-size: 14px; }
+.header-period-badge {
+  background: var(--gsk-green);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* ── Navigation ───────────────────────────────────────────────── */
+#app-nav {
+  background: var(--iq-blue);
+  height: 38px;
+  display: flex;
+  align-items: stretch;
+  padding: 0 16px;
+  gap: 2px;
+  border-bottom: 2px solid rgba(0,0,0,0.15);
+}
+.nav-tab {
+  color: rgba(255,255,255,0.72);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.12s;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.nav-tab.active { color: #fff; border-bottom-color: var(--gsk-orange); background: rgba(255,255,255,0.1); }
+.nav-tab i { font-size: 13px; }
+
+/* ── Filter Bar ───────────────────────────────────────────────── */
+#filter-bar {
+  background: #fff;
+  border-bottom: 1px solid var(--iq-border);
+  padding: 7px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.filter-select {
+  border: 1px solid var(--iq-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-dark);
+  background: #fff;
+  min-width: 160px;
+  cursor: pointer;
+  outline: none;
+}
+.filter-select:focus { border-color: var(--iq-blue); box-shadow: 0 0 0 2px rgba(21,87,160,0.15); }
+.filter-btn {
+  background: var(--iq-blue);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.filter-btn:hover { background: #0f469e; }
+.refresh-info { margin-left: auto; font-size: 10px; color: var(--text-muted); }
+
+/* ── Content ──────────────────────────────────────────────────── */
+#main-content { padding: 14px 16px; }
+.tab-pane-iq { display: none; }
+.tab-pane-iq.active { display: block; }
+
+/* ── KPI Cards ────────────────────────────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 14px; }
+.kpi-card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--iq-border);
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.kpi-card.orange::before { background: var(--gsk-orange); }
+.kpi-card.blue::before   { background: var(--iq-blue); }
+.kpi-card.green::before  { background: var(--gsk-green); }
+.kpi-card.purple::before { background: #6f42c1; }
+.kpi-card.teal::before   { background: #0dcaf0; }
+.kpi-card.red::before    { background: #dc3545; }
+.kpi-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.kpi-value { font-size: 22px; font-weight: 700; color: var(--text-dark); line-height: 1; }
+.kpi-delta { font-size: 11px; margin-top: 4px; }
+.kpi-delta.up   { color: #198754; }
+.kpi-delta.down { color: #dc3545; }
+.kpi-delta.flat { color: var(--text-muted); }
+.kpi-icon { position: absolute; right: 12px; top: 12px; font-size: 20px; opacity: 0.12; color: var(--text-dark); }
+
+/* ── Panels ───────────────────────────────────────────────────── */
+.panel {
+  background: #fff;
+  border: 1px solid var(--iq-border);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.panel-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--iq-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-title { font-size: 12px; font-weight: 700; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.5px; }
+.panel-subtitle { font-size: 11px; color: var(--text-muted); }
+.panel-body { padding: 12px 14px; }
+.panel-tools { display: flex; gap: 6px; }
+.tool-btn {
+  border: 1px solid var(--iq-border);
+  background: #fff;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.12s;
+}
+.tool-btn:hover, .tool-btn.active { background: var(--iq-blue); color: #fff; border-color: var(--iq-blue); }
+
+/* ── Chart containers ─────────────────────────────────────────── */
+.chart-wrap { position: relative; }
+.chart-wrap canvas { display: block; }
+
+/* ── Territory Table ──────────────────────────────────────────── */
+.terr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.terr-table th { background: var(--iq-dark); color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+.terr-table td { padding: 7px 10px; border-bottom: 1px solid var(--iq-border); }
+.terr-table tr:last-child td { border-bottom: none; }
+.terr-table tr:hover td { background: #f8f9fc; }
+.attain-bar { height: 6px; border-radius: 3px; background: #e9ecef; position: relative; min-width: 80px; }
+.attain-fill { height: 100%; border-radius: 3px; position: absolute; left: 0; top: 0; }
+.badge-seg { display: inline-block; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; line-height: 20px; text-align: center; color: #fff; }
+.seg-a { background: #198754; }
+.seg-b { background: var(--gsk-orange); }
+.seg-c { background: #6c757d; }
+.delta-up   { color: #198754; font-size: 11px; }
+.delta-down { color: #dc3545; font-size: 11px; }
+
+/* ── HCP Tracker ──────────────────────────────────────────────── */
+.hcp-grid table { font-size: 12px; }
+.hcp-grid .dataTables_wrapper { font-size: 12px; }
+.decile-badge {
+  display: inline-block; min-width: 22px; height: 22px; border-radius: 3px;
+  font-size: 11px; font-weight: 700; text-align: center; line-height: 22px; color: #fff;
+}
+.d10, .d9 { background: #1a6e36; }
+.d8, .d7  { background: #2d9e56; }
+.d6, .d5  { background: var(--gsk-orange); }
+.d4, .d3  { background: #c75a10; }
+.d2, .d1  { background: #9e2a2a; }
+
+/* ── Prescriber Profile ───────────────────────────────────────── */
+.hcp-card {
+  background: linear-gradient(135deg, var(--iq-dark) 0%, var(--iq-blue) 100%);
+  color: #fff;
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.hcp-card::after {
+  content: '';
+  position: absolute;
+  right: -20px; top: -20px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+}
+.hcp-name { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+.hcp-meta { font-size: 11px; opacity: 0.75; margin-bottom: 10px; }
+.hcp-stat-row { display: flex; gap: 24px; }
+.hcp-stat { text-align: center; }
+.hcp-stat .val { font-size: 20px; font-weight: 700; }
+.hcp-stat .lbl { font-size: 10px; opacity: 0.7; }
+
+.prod-metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.prod-metric-card { background: var(--iq-light-bg); border: 1px solid var(--iq-border); border-radius: 5px; padding: 10px 12px; }
+.prod-metric-name { font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+.prod-metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.prod-metric-row .lbl { font-size: 10px; color: var(--text-muted); }
+.prod-metric-row .val { font-size: 12px; font-weight: 600; }
+.share-bar-wrap { margin-top: 6px; }
+.share-bar { height: 4px; background: #e9ecef; border-radius: 2px; }
+.share-fill { height: 100%; border-radius: 2px; }
+
+/* ── Alerts ───────────────────────────────────────────────────── */
+.alert-card {
+  border: 1px solid var(--iq-border);
+  border-left: 4px solid;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: #fff;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.alert-icon { font-size: 20px; margin-top: 1px; }
+.alert-body { flex: 1; }
+.alert-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.alert-msg { font-size: 11px; color: var(--text-muted); }
+.alert-action-btn {
+  font-size: 11px; font-weight: 600; padding: 4px 12px;
+  border: none; border-radius: 4px; cursor: pointer;
+  color: #fff; white-space: nowrap;
+}
+.priority-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; color: #fff; }
+.pri-high   { background: #dc3545; }
+.pri-medium { background: #fd7e14; }
+
+/* ── Speaker Programs ─────────────────────────────────────────── */
+.speaker-card {
+  border: 1px solid var(--iq-border);
+  border-radius: 5px;
+  padding: 12px 14px;
+  background: #fff;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.speaker-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--iq-blue);
+  color: #fff; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.tier-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+.tier-1 { background: #fff3cd; color: #856404; }
+.tier-2 { background: #d1ecf1; color: #0c5460; }
+
+/* ── Vaccines BU ──────────────────────────────────────────────── */
+.vax-banner {
+  background: linear-gradient(135deg, #004d26 0%, #007a3d 100%);
+  color: #fff;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.vax-stat .val { font-size: 22px; font-weight: 700; }
+.vax-stat .lbl { font-size: 10px; opacity: 0.75; }
+
+/* ── Scrollbars ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c5cad6; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ba3b4; }
+
+/* ── Loaders ──────────────────────────────────────────────────── */
+.spinner-overlay {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; color: var(--text-muted);
+}
+
+/* ── Responsive grid helpers ──────────────────────────────────── */
+.row-charts { display: grid; gap: 12px; margin-bottom: 12px; }
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.cols-2-1 { grid-template-columns: 2fr 1fr; }
+.cols-1-2 { grid-template-columns: 1fr 2fr; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────── -->
+<div id="app-header">
+  <a class="gsk-logo" href="#">
+    <img src="data:image/png;base64,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" alt="GSK" style="height:32px; width:auto; border-radius:4px; display:block; object-fit:contain;"/>
+  </a>
+  <span class="header-title">Sample IQ2020 Model</span>
+  <span class="header-period-badge" id="period-badge">Jun 2025</span>
+  <div class="header-right">
+    <button class="bu-pill active" onclick="setBU('AIR',this)">AIR</button>
+    <button class="bu-pill" onclick="setBU('SBU',this)">SBU</button>
+    <button class="bu-pill" onclick="setBU('VACCINES',this)">Vaccines</button>
+    <span class="header-user"><i class="bi bi-person-circle"></i> J. Jackowski &nbsp;|&nbsp; <span style="color:rgba(255,255,255,0.5);cursor:pointer">Log Off</span></span>
+  </div>
+</div>
+
+<!-- ── NAVIGATION ─────────────────────────────────────────────────── -->
+<div id="app-nav">
+  <div class="nav-tab active" onclick="showTab('overview',this)">     <i class="bi bi-grid-1x2-fill"></i>Executive</div>
+  <div class="nav-tab" onclick="showTab('performance',this)">          <i class="bi bi-bar-chart-fill"></i>Performance</div>
+  <div class="nav-tab" onclick="showTab('tracker',this)">              <i class="bi bi-table"></i>HCP Tracker</div>
+  <div class="nav-tab" onclick="showTab('profile',this)">              <i class="bi bi-person-badge"></i>Profile</div>
+  <div class="nav-tab" onclick="showTab('alerts',this)">               <i class="bi bi-bell-fill"></i>Alerts <span id="alert-count-badge" style="background:#dc3545;color:#fff;border-radius:8px;padding:1px 5px;font-size:10px;margin-left:3px;"></span></div>
+  <div class="nav-tab" onclick="showTab('speakers',this)">             <i class="bi bi-mic-fill"></i>Speaker Programs</div>
+  <div class="nav-tab vaccines-only" onclick="showTab('vaccines',this)"><i class="bi bi-shield-plus-fill"></i>Vaccines BU</div>
+</div>
+
+<!-- ── FILTER BAR ─────────────────────────────────────────────────── -->
+<div id="filter-bar">
+  <span class="filter-label">Territory</span>
+  <select class="filter-select" id="sel-territory" onchange="applyFilters()">
+    <option value="ALL">All Territories</option>
+  </select>
+  <span class="filter-label">Product Family</span>
+  <select class="filter-select" id="sel-product">
+    <option value="ALL">All Products</option>
+    <option value="NEXOLID">NEXOLID</option>
+    <option value="VERITONEX">VERITONEX</option>
+    <option value="CLAROZEPT">CLAROZEPT</option>
+    <option value="DEPTRAZOL">DEPTRAZOL</option>
+  </select>
+  <span class="filter-label">Period</span>
+  <select class="filter-select" id="sel-period" onchange="applyFilters()">
+    <option value="2025-06" selected>Jun 2025 (CM)</option>
+    <option value="2025-05">May 2025</option>
+    <option value="2025-04">Apr 2025</option>
+    <option value="2025-03">Mar 2025</option>
+    <option value="2025-02">Feb 2025</option>
+    <option value="2025-01">Jan 2025</option>
+  </select>
+  <button class="filter-btn" onclick="applyFilters()"><i class="bi bi-funnel-fill"></i> Apply</button>
+  <span class="refresh-info"><i class="bi bi-clock"></i> Data refreshed: Jun 12, 2025 06:00 AM</span>
+</div>
+
+<!-- ── MAIN CONTENT ───────────────────────────────────────────────── -->
+<div id="main-content">
+
+  <!-- ════════════════════════════════════════
+       TAB 1 — EXECUTIVE OVERVIEW
+  ════════════════════════════════════════ -->
+  <div class="tab-pane-iq active" id="tab-overview">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpi-cards">
+      <div class="kpi-card orange"><div class="kpi-label">CM TRx Volume</div><div class="kpi-value" id="kpi-trx">—</div><div class="kpi-delta" id="kpi-trx-delta">—</div><i class="bi bi-capsule kpi-icon"></i></div>
+      <div class="kpi-card blue">  <div class="kpi-label">CM NRx (New Rx)</div><div class="kpi-value" id="kpi-nrx">—</div><div class="kpi-delta" id="kpi-nrx-delta">—</div><i class="bi bi-file-medical kpi-icon"></i></div>
+      <div class="kpi-card green"> <div class="kpi-label">TRx Attainment %</div><div class="kpi-value" id="kpi-attain">—</div><div class="kpi-delta flat">vs 100% target</div><i class="bi bi-bullseye kpi-icon"></i></div>
+      <div class="kpi-card purple"><div class="kpi-label">Total Calls (CM)</div><div class="kpi-value" id="kpi-calls">—</div><div class="kpi-delta" id="kpi-calls-delta">—</div><i class="bi bi-telephone kpi-icon"></i></div>
+      <div class="kpi-card teal">  <div class="kpi-label">New Patient Starts</div><div class="kpi-value" id="kpi-newpts">—</div><div class="kpi-delta flat">CM new starts</div><i class="bi bi-person-plus kpi-icon"></i></div>
+      <div class="kpi-card red">   <div class="kpi-label">TRx Market Share %</div><div class="kpi-value" id="kpi-share">—</div><div class="kpi-delta flat">Avg across HCPs</div><i class="bi bi-pie-chart kpi-icon"></i></div>
+    </div>
+
+    <!-- Row 1: Trend + Share -->
+    <div class="row-charts cols-2-1">
+      <div class="panel">
+        <div class="panel-header">
+          <div><div class="panel-title">Monthly TRx / NRx Trend</div><div class="panel-subtitle">Jan – Jun 2025 · All Products</div></div>
+          <div class="panel-tools">
+            <button class="tool-btn active" id="trend-btn-trx" onclick="switchTrend('trx')">TRx</button>
+            <button class="tool-btn" id="trend-btn-nrx" onclick="switchTrend('nrx')">NRx</button>
+            <button class="tool-btn" id="trend-btn-prod" onclick="switchTrend('prod')">By Product</button>
+          </div>
+        </div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-trend" height="180"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Portfolio Share</div><div class="panel-subtitle">TRx mix by product family (CM)</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-share" height="180"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- Row 2: Territory attainment + Payer mix + Call activity -->
+    <div class="row-charts cols-3">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Territory Attainment</div><div class="panel-subtitle">TRx % of quota (CM)</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-attain" height="200"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Payer Mix</div><div class="panel-subtitle">TRx distribution by payer type (CM)</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-payer" height="200"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Call Activity Trend</div><div class="panel-subtitle">Total calls by month</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-calls-trend" height="200"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- Row 3: New patients + HCP coverage -->
+    <div class="row-charts cols-2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">New Patient Starts</div><div class="panel-subtitle">NRx new patients by month — all territories</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-newpts" height="160"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">HCP Call Coverage vs Decile</div><div class="panel-subtitle">Called vs universe by decile rank</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-decile" height="160"></canvas></div></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-overview -->
+
+  <!-- ════════════════════════════════════════
+       TAB 2 — GEO PERFORMANCE
+  ════════════════════════════════════════ -->
+  <div class="tab-pane-iq" id="tab-performance">
+
+    <!-- Territory KPI summary row -->
+    <div class="row-charts cols-2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Territory TRx Volume — CM</div><div class="panel-subtitle">Ranked by TRx volume</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-terr-trx" height="220"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">HCP Call Coverage %</div><div class="panel-subtitle">% of HCP universe called this month</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-terr-cvg" height="220"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- Product TRx by Territory (stacked) -->
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Product Mix by Territory</div><div class="panel-subtitle">TRx volume per product — CM</div></div>
+      <div class="panel-body"><div class="chart-wrap"><canvas id="chart-terr-prod" height="160"></canvas></div></div>
+    </div>
+
+    <!-- Territory Performance Table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div><div class="panel-title">Territory Performance Grid</div><div class="panel-subtitle">CM metrics vs target — Jun 2025</div></div>
+      </div>
+      <div class="panel-body" style="padding:0; overflow-x:auto;">
+        <table class="terr-table" id="terr-perf-table">
+          <thead>
+            <tr>
+              <th>Territory</th><th>Rep</th><th>Region</th>
+              <th>CM TRx</th><th>vs Prior</th><th>Mkt Share</th>
+              <th>Attainment</th><th>Calls</th><th>HCP Cvg%</th>
+              <th>New Pts</th><th>NEXOLID</th><th>VERITONEX</th>
+            </tr>
+          </thead>
+          <tbody id="terr-perf-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /tab-performance -->
+
+  <!-- ════════════════════════════════════════
+       TAB 3 — HCP TRACKER
+  ════════════════════════════════════════ -->
+  <div class="tab-pane-iq" id="tab-tracker">
+    <div class="row-charts cols-3" style="margin-bottom:12px;">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">HCP Decile Distribution</div><div class="panel-subtitle">Universe vs called</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-decile2" height="180"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Segment A/B/C Coverage</div><div class="panel-subtitle">HCPs by segment</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-segment" height="180"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Top 10 HCPs by TRx</div><div class="panel-subtitle">CM TRx volume</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-top-hcps" height="180"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="panel hcp-grid">
+      <div class="panel-header">
+        <div><div class="panel-title">HCP Tracker</div><div class="panel-subtitle">Click any row to view prescriber profile</div></div>
+      </div>
+      <div class="panel-body" style="padding:8px;">
+        <table id="hcp-datatable" class="table table-hover table-sm" style="width:100%;font-size:12px;">
+          <thead>
+            <tr style="background:var(--iq-dark);color:#fff;">
+              <th>Name</th><th>Specialty</th><th>City/St</th><th>Territory</th>
+              <th>Decile</th><th>Seg</th><th>CM TRx</th><th>CM NRx</th>
+              <th>TRx Chg%</th><th>Mkt Share%</th><th>Calls CM</th><th>YTD Calls</th>
+              <th>Last Call</th><th>New Pts</th><th>Speaker</th>
+            </tr>
+          </thead>
+          <tbody id="hcp-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-tracker -->
+
+  <!-- ════════════════════════════════════════
+       TAB 4 — PRESCRIBER PROFILE
+  ════════════════════════════════════════ -->
+  <div class="tab-pane-iq" id="tab-profile">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <span class="filter-label">Select HCP</span>
+      <select class="filter-select" id="sel-hcp" onchange="loadHCPProfile(this.value)" style="min-width:260px;"></select>
+    </div>
+
+    <div id="profile-content">
+      <div class="spinner-overlay"><i class="bi bi-arrow-repeat" style="font-size:24px;animation:spin 1s linear infinite;"></i>&nbsp; Select an HCP above</div>
+    </div>
+  </div><!-- /tab-profile -->
+
+  <!-- ════════════════════════════════════════
+       TAB 5 — ACTIVE ALERTS
+  ════════════════════════════════════════ -->
+  <div class="tab-pane-iq" id="tab-alerts">
+    <div class="row-charts cols-2" style="margin-bottom:12px;">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Alert Summary</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-alert-types" height="160"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Market Share vs Call Frequency</div><div class="panel-subtitle">Bubble = TRx volume · Identify call/share gaps</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-bubble" height="160"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div><div class="panel-title">Active Alerts</div><div class="panel-subtitle" id="alert-summary-line">Loading…</div></div>
+        <div class="panel-tools">
+          <button class="tool-btn active" onclick="filterAlerts('ALL',this)">All</button>
+          <button class="tool-btn" onclick="filterAlerts('NEW_PATIENT',this)">New Patients</button>
+          <button class="tool-btn" onclick="filterAlerts('DECLINE',this)">Declines</button>
+          <button class="tool-btn" onclick="filterAlerts('NO_CALL',this)">Missed Calls</button>
+          <button class="tool-btn" onclick="filterAlerts('LOW_TARGET',this)">Low Target</button>
+        </div>
+      </div>
+      <div class="panel-body" id="alert-list"></div>
+    </div>
+  </div><!-- /tab-alerts -->
+
+  <!-- ════════════════════════════════════════
+       TAB 6 — SPEAKER PROGRAMS
+  ════════════════════════════════════════ -->
+  <div class="tab-pane-iq" id="tab-speakers">
+    <div class="row-charts cols-2" style="margin-bottom:12px;">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Speaker Programs vs Rx Lift</div><div class="panel-subtitle">Programs YTD vs TRx — bubble = honorarium</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-spk-bubble" height="200"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Programs by Tier</div><div class="panel-subtitle">Tier 1 vs Tier 2 program breakdown</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-spk-tier" height="200"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Speaker Roster</div><div class="panel-subtitle">YTD performance</div></div>
+      <div class="panel-body" id="speaker-list" style="padding:8px 14px;"></div>
+    </div>
+  </div><!-- /tab-speakers -->
+
+  <!-- ════════════════════════════════════════
+       TAB 7 — VACCINES BU
+  ════════════════════════════════════════ -->
+  <div class="tab-pane-iq vaccines-only" id="tab-vaccines">
+    <div class="vax-banner">
+      <i class="bi bi-shield-plus-fill" style="font-size:32px;opacity:0.8;"></i>
+      <div class="vax-stat"><div class="val" id="vax-total-doses">—</div><div class="lbl">Total Doses YTD</div></div>
+      <div class="vax-stat"><div class="val" id="vax-shingrix">—</div><div class="lbl">Shingrix Doses (CM)</div></div>
+      <div class="vax-stat"><div class="val" id="vax-flu">—</div><div class="lbl">Fluarix Doses (CM)</div></div>
+      <div class="vax-stat"><div class="val" id="vax-coverage">—%</div><div class="lbl">Avg Coverage Rate</div></div>
+    </div>
+
+    <div class="row-charts cols-2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Vaccine Dose Volume Trend</div><div class="panel-subtitle">Monthly doses by vaccine brand</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-vax-trend" height="200"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Dose Mix — CM</div><div class="panel-subtitle">Share of dose volume by vaccine</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-vax-mix" height="200"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="row-charts cols-2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Coverage Rate by Territory</div><div class="panel-subtitle">% of eligible population vaccinated</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-vax-coverage" height="180"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Seasonal Dose Trend — Shingrix</div><div class="panel-subtitle">Cumulative vs target (YTD)</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-vax-cumul" height="180"></canvas></div></div>
+      </div>
+    </div>
+  </div><!-- /tab-vaccines -->
+
+</div><!-- /main-content -->
+
+<!-- ── SCRIPTS ────────────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+/* ───────────────────────────────────────────────────────────────
+   CONFIG & GLOBALS
+─────────────────────────────────────────────────────────────── */
+const COLORS = {
+  NEXOLID:   '#1F77B4', VERITONEX: '#F36F21',
+  CLAROZEPT: '#00A651', DEPTRAZOL: '#D62728',
+  orange: '#F36F21', blue: '#1557A0', green: '#00A651',
+  navy: '#0C1E3D', red: '#dc3545', purple: '#6f42c1',
+  teal: '#17a2b8', amber: '#fd7e14',
+};
+const MONTHS = ['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25'];
+
+let chartInstances  = {};
+let allAlerts       = [];
+let hcpListData     = [];
+let currentBU       = 'AIR';
+let currentTerritory= 'ALL';
+let currentPeriod   = '2025-06';
+let dtTable         = null;
+
+/* ───────────────────────────────────────────────────────────────
+   UTILITIES
+─────────────────────────────────────────────────────────────── */
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000)    return (n/1000).toFixed(1)+'K';
+  return n.toLocaleString();
+}
+function deltaHtml(pct) {
+  if (!pct && pct !== 0) return '';
+  const cls = pct > 0 ? 'up' : (pct < 0 ? 'down' : 'flat');
+  const icon= pct > 0 ? '▲' : (pct < 0 ? '▼' : '—');
+  return `<span class="delta-${cls}">${icon} ${Math.abs(pct).toFixed(1)}% vs prior</span>`;
+}
+function attainColor(pct) {
+  if (pct >= 100) return COLORS.green;
+  if (pct >= 85)  return COLORS.orange;
+  return COLORS.red;
+}
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+function makeChart(id, type, data, options={}) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  chartInstances[id] = new Chart(ctx, { type, data,
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } } }, ...options }
+  });
+}
+
+/* ───────────────────────────────────────────────────────────────
+   BU / TAB / FILTER CONTROL
+─────────────────────────────────────────────────────────────── */
+function setBU(bu, el) {
+  currentBU = bu;
+  document.querySelectorAll('.bu-pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  // Show/hide vaccines tab
+  document.querySelectorAll('.vaccines-only').forEach(e =>
+    e.style.display = bu === 'VACCINES' ? '' : 'none');
+  if (bu === 'VACCINES') showTab('vaccines', document.querySelector('[onclick*="vaccines"]'));
+  else { showTab('overview', document.querySelector('[onclick*="overview"]')); }
+}
+
+function showTab(tab, el) {
+  document.querySelectorAll('.tab-pane-iq').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const pane = document.getElementById('tab-'+tab);
+  if (pane) pane.classList.add('active');
+  if (el)   el.classList.add('active');
+  // Lazy-load tab data
+  if (tab === 'performance') loadPerformanceTab();
+  if (tab === 'tracker')     loadTrackerTab();
+  if (tab === 'alerts')      loadAlertsTab();
+  if (tab === 'speakers')    loadSpeakersTab();
+  if (tab === 'vaccines')    loadVaccinesTab();
+}
+
+function applyFilters() {
+  currentTerritory = document.getElementById('sel-territory').value;
+  currentPeriod    = document.getElementById('sel-period').value;
+  const monthMap   = {'2025-01':'Jan','2025-02':'Feb','2025-03':'Mar','2025-04':'Apr','2025-05':'May','2025-06':'Jun'};
+  document.getElementById('period-badge').textContent = (monthMap[currentPeriod]||'Jun') + ' 2025';
+  loadOverviewTab();
+}
+
+/* ───────────────────────────────────────────────────────────────
+   OVERVIEW TAB
+─────────────────────────────────────────────────────────────── */
+async function loadOverviewTab() {
+  const [kpi, trend, share, payer, decile] = await Promise.all([
+    fetch(`/api/kpis?territory=${currentTerritory}&period=${currentPeriod}`).then(r=>r.json()),
+    fetch(`/api/trend?territory=${currentTerritory}`).then(r=>r.json()),
+    fetch(`/api/product-share?period=${currentPeriod}&territory=${currentTerritory}`).then(r=>r.json()),
+    fetch(`/api/payer-mix?period=${currentPeriod}`).then(r=>r.json()),
+    fetch(`/api/decile`).then(r=>r.json()),
+  ]);
+  renderKPIs(kpi);
+  renderTrendChart(trend);
+  renderShareChart(share);
+  renderAttainChart();
+  renderPayerChart(payer);
+  renderCallsTrend(trend);
+  renderNewPtsChart(trend);
+  renderDecileChart(decile,'chart-decile');
+}
+
+function renderKPIs(d) {
+  document.getElementById('kpi-trx').textContent = fmt(d.trx);
+  document.getElementById('kpi-nrx').textContent = fmt(d.nrx);
+  document.getElementById('kpi-attain').textContent = d.attainment.toFixed(1)+'%';
+  document.getElementById('kpi-calls').textContent = fmt(d.calls);
+  document.getElementById('kpi-newpts').textContent = fmt(d.new_patients);
+  document.getElementById('kpi-share').textContent = d.trx_share.toFixed(1)+'%';
+  setDelta('kpi-trx-delta', d.trx_delta);
+  setDelta('kpi-nrx-delta', d.nrx_delta);
+  setDelta('kpi-calls-delta', d.calls_delta);
+}
+function setDelta(id, pct) {
+  const el = document.getElementById(id); if(!el) return;
+  const cls = pct>0 ? 'up' : (pct<0 ? 'down' : 'flat');
+  const ico = pct>0 ? '▲' : (pct<0 ? '▼' : '—');
+  el.className = `kpi-delta ${cls}`;
+  el.innerHTML = `${ico} ${Math.abs(pct).toFixed(1)}% vs prior`;
+}
+
+let trendData = null;
+let trendMode = 'trx';
+function renderTrendChart(data) {
+  trendData = data;
+  drawTrend();
+}
+function switchTrend(mode) {
+  trendMode = mode;
+  ['trx','nrx','prod'].forEach(m => {
+    const b = document.getElementById(`trend-btn-${m}`);
+    if (b) b.classList.toggle('active', m === mode);
+  });
+  drawTrend();
+}
+function drawTrend() {
+  if (!trendData) return;
+  const d = trendData;
+  let datasets;
+  if (trendMode === 'trx') {
+    datasets = [
+      {label:'TRx', data: d.trx, borderColor: COLORS.blue, backgroundColor: hexAlpha(COLORS.blue,0.08), fill:true, tension:0.3, borderWidth:2, pointRadius:4},
+      {label:'NRx', data: d.nrx, borderColor: COLORS.orange, backgroundColor: hexAlpha(COLORS.orange,0.06), fill:true, tension:0.3, borderWidth:2, pointRadius:4, borderDash:[4,4]},
+    ];
+  } else if (trendMode === 'nrx') {
+    datasets = [
+      {label:'Total NRx', data: d.nrx, borderColor: COLORS.orange, backgroundColor: hexAlpha(COLORS.orange,0.1), fill:true, tension:0.3, borderWidth:2, pointRadius:4},
+      {label:'NEXOLID NRx', data: d.nexolid_nrx, borderColor: COLORS.NEXOLID, tension:0.3, borderWidth:1.5, pointRadius:3},
+      {label:'VERITONEX NRx', data: d.veritonex_nrx, borderColor: COLORS.VERITONEX, tension:0.3, borderWidth:1.5, pointRadius:3},
+    ];
+  } else {
+    datasets = [
+      {label:'NEXOLID',   data: d.nexolid,   borderColor: COLORS.NEXOLID,   tension:0.3, borderWidth:2, pointRadius:3},
+      {label:'VERITONEX', data: d.veritonex, borderColor: COLORS.VERITONEX, tension:0.3, borderWidth:2, pointRadius:3},
+      {label:'CLAROZEPT', data: d.clarozept, borderColor: COLORS.CLAROZEPT, tension:0.3, borderWidth:2, pointRadius:3},
+      {label:'DEPTRAZOL', data: d.deptrazol, borderColor: COLORS.DEPTRAZOL, tension:0.3, borderWidth:2, pointRadius:3},
+    ];
+  }
+  makeChart('chart-trend','line',{labels: d.labels, datasets},{
+    plugins:{legend:{position:'top', labels:{boxWidth:12, font:{size:11}}}},
+    scales:{y:{beginAtZero:false, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+}
+
+function renderShareChart(data) {
+  makeChart('chart-share','doughnut',{
+    labels: data.map(d=>d.product),
+    datasets:[{data: data.map(d=>d.trx), backgroundColor:[COLORS.NEXOLID,COLORS.VERITONEX,COLORS.CLAROZEPT,COLORS.DEPTRAZOL], borderWidth:2, borderColor:'#fff', hoverOffset:6}]
+  },{
+    plugins:{legend:{position:'right', labels:{boxWidth:12, font:{size:11}}},
+      tooltip:{callbacks:{label:(c)=>`${c.label}: ${fmt(c.raw)} TRx (${data[c.dataIndex].portfolio_pct}%)`}}},
+    cutout:'60%',
+  });
+}
+
+async function renderAttainChart() {
+  const data = await fetch(`/api/territory-perf?period=${currentPeriod}`).then(r=>r.json());
+  makeChart('chart-attain','bar',{
+    labels: data.map(d=>d.name.split('-')[0]),
+    datasets:[
+      {label:'Attainment %', data: data.map(d=>d.attain), backgroundColor: data.map(d=>hexAlpha(attainColor(d.attain),0.85)), borderRadius:3},
+      {label:'Target (100%)', data: data.map(()=>100), type:'line', borderColor:'#666', borderDash:[4,3], borderWidth:1.5, pointRadius:0, fill:false},
+    ]
+  },{
+    plugins:{legend:{labels:{font:{size:10}}}},
+    scales:{y:{min:0, max:130, grid:{color:'#eef0f5'}, ticks:{font:{size:10}, callback:v=>v+'%'}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+}
+
+function renderPayerChart(data) {
+  makeChart('chart-payer','pie',{
+    labels: data.map(d=>d.payer),
+    datasets:[{data: data.map(d=>d.trx),
+      backgroundColor:['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc948'],
+      borderWidth:2, borderColor:'#fff'}]
+  },{
+    plugins:{legend:{position:'right', labels:{boxWidth:12, font:{size:10}}},
+      tooltip:{callbacks:{label:(c)=>`${c.label}: ${fmt(c.raw)} TRx (${data[c.dataIndex].pct}%)`}}},
+  });
+}
+
+function renderCallsTrend(d) {
+  makeChart('chart-calls-trend','bar',{
+    labels: d.labels,
+    datasets:[{label:'Calls', data: d.calls, backgroundColor: hexAlpha(COLORS.blue, 0.75), borderRadius:4}]
+  },{
+    plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+}
+
+function renderNewPtsChart(d) {
+  makeChart('chart-newpts','line',{
+    labels: d.labels,
+    datasets:[{label:'New Patients', data: d.new_patients, borderColor: COLORS.green, backgroundColor: hexAlpha(COLORS.green,0.12), fill:true, tension:0.3, borderWidth:2, pointRadius:4}]
+  },{
+    plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+}
+
+function renderDecileChart(d, canvasId) {
+  makeChart(canvasId,'bar',{
+    labels: d.deciles.map(n=>'D'+n),
+    datasets:[
+      {label:'Universe', data: d.total, backgroundColor: hexAlpha(COLORS.blue,0.25), borderRadius:3},
+      {label:'Called',   data: d.called, backgroundColor: hexAlpha(COLORS.blue,0.8), borderRadius:3},
+    ]
+  },{
+    plugins:{legend:{labels:{font:{size:10}, boxWidth:12}}},
+    scales:{y:{beginAtZero:true, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+}
+
+/* ───────────────────────────────────────────────────────────────
+   PERFORMANCE TAB
+─────────────────────────────────────────────────────────────── */
+async function loadPerformanceTab() {
+  const data = await fetch(`/api/territory-perf?period=${currentPeriod}`).then(r=>r.json());
+
+  // Territory TRx volume
+  makeChart('chart-terr-trx','bar',{
+    labels: data.map(d=>d.name),
+    datasets:[{label:'TRx', data: data.map(d=>d.trx), backgroundColor: hexAlpha(COLORS.blue,0.8), borderRadius:4}]
+  },{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{y:{grid:{display:false}, ticks:{font:{size:11}}}, x:{grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}},
+  });
+
+  // HCP coverage
+  makeChart('chart-terr-cvg','bar',{
+    labels: data.map(d=>d.name),
+    datasets:[{label:'Coverage %', data: data.map(d=>d.hcp_cvg),
+      backgroundColor: data.map(d=> d.hcp_cvg>=70 ? hexAlpha(COLORS.green,0.8) : hexAlpha(COLORS.orange,0.8)), borderRadius:4}]
+  },{
+    indexAxis:'y',
+    plugins:{legend:{display:false}},
+    scales:{y:{grid:{display:false}, ticks:{font:{size:11}}}, x:{max:100, grid:{color:'#eef0f5'}, ticks:{font:{size:10}, callback:v=>v+'%'}}},
+  });
+
+  // Product mix stacked
+  makeChart('chart-terr-prod','bar',{
+    labels: data.map(d=>d.name),
+    datasets:[
+      {label:'NEXOLID',   data: data.map(d=>d.nexolid),   backgroundColor: COLORS.NEXOLID,   stack:'s'},
+      {label:'VERITONEX', data: data.map(d=>d.veritonex), backgroundColor: COLORS.VERITONEX, stack:'s'},
+      {label:'CLAROZEPT', data: data.map(d=>d.clarozept), backgroundColor: COLORS.CLAROZEPT, stack:'s'},
+      {label:'DEPTRAZOL', data: data.map(d=>d.deptrazol), backgroundColor: COLORS.DEPTRAZOL, stack:'s'},
+    ]
+  },{
+    plugins:{legend:{labels:{font:{size:10}, boxWidth:12}}},
+    scales:{y:{stacked:true, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{stacked:true, grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+
+  // Territory table
+  const tbody = document.getElementById('terr-perf-body');
+  tbody.innerHTML = data.map(row => {
+    const chgHtml = deltaHtml(row.trx_chg);
+    const attBar  = `<div class="attain-bar"><div class="attain-fill" style="width:${Math.min(row.attain,100)}%;background:${attainColor(row.attain)}"></div></div><small>${row.attain}%</small>`;
+    return `<tr>
+      <td><strong>${row.name}</strong></td>
+      <td>${row.rep}</td><td>${row.region.replace(' Region','')}</td>
+      <td><strong>${fmt(row.trx)}</strong></td>
+      <td>${chgHtml}</td>
+      <td>${row.share.toFixed(1)}%</td>
+      <td>${attBar}</td>
+      <td>${row.calls}</td>
+      <td>${row.hcp_cvg}%</td>
+      <td>${row.new_pts}</td>
+      <td>${fmt(row.nexolid)}</td>
+      <td>${fmt(row.veritonex)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ───────────────────────────────────────────────────────────────
+   TRACKER TAB
+─────────────────────────────────────────────────────────────── */
+async function loadTrackerTab() {
+  const [hcps, decile] = await Promise.all([
+    fetch(`/api/hcp-tracker?territory=${currentTerritory}`).then(r=>r.json()),
+    fetch(`/api/decile`).then(r=>r.json()),
+  ]);
+  hcpListData = hcps;
+
+  // Populate HCP selector on profile tab
+  const sel = document.getElementById('sel-hcp');
+  sel.innerHTML = '<option value="">— Select HCP —</option>' +
+    hcps.map(h=>`<option value="${h.cid}">${h.name} · ${h.specialty} · Decile ${h.decile}</option>`).join('');
+
+  // Decile chart (tracker tab)
+  renderDecileChart(decile,'chart-decile2');
+
+  // Segment pie
+  const segs = {A:0, B:0, C:0};
+  hcps.forEach(h => segs[h.segment] = (segs[h.segment]||0)+1);
+  makeChart('chart-segment','doughnut',{
+    labels:['Segment A','Segment B','Segment C'],
+    datasets:[{data:[segs.A,segs.B,segs.C],
+      backgroundColor:[COLORS.green, COLORS.orange, '#6c757d'],
+      borderWidth:2, borderColor:'#fff'}]
+  },{cutout:'55%', plugins:{legend:{position:'right', labels:{font:{size:11}, boxWidth:12}}}});
+
+  // Top 10 HCPs
+  const top10 = hcps.slice(0,10);
+  makeChart('chart-top-hcps','bar',{
+    labels: top10.map(h=>h.name.split(' ').slice(-1)[0]),
+    datasets:[{label:'CM TRx', data: top10.map(h=>h.trx), backgroundColor: hexAlpha(COLORS.blue,0.8), borderRadius:3}]
+  },{
+    indexAxis:'y', plugins:{legend:{display:false}},
+    scales:{y:{grid:{display:false}, ticks:{font:{size:10}}}, x:{grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}},
+  });
+
+  // DataTable
+  const tbody = document.getElementById('hcp-table-body');
+  tbody.innerHTML = hcps.map(h => {
+    const dCls   = `d${h.decile}`;
+    const segBadge = `<span class="badge-seg seg-${h.segment.toLowerCase()}">${h.segment}</span>`;
+    const chgHtml  = h.trx_chg > 0
+      ? `<span class="delta-up">▲${Math.abs(h.trx_chg).toFixed(1)}%</span>`
+      : `<span class="delta-down">▼${Math.abs(h.trx_chg).toFixed(1)}%</span>`;
+    const spkBadge = h.speaker==='Y' ? '<span class="badge bg-warning text-dark" style="font-size:9px;">SPK</span>' : '';
+    return `<tr style="cursor:pointer" onclick="goToProfile('${h.cid}')">
+      <td><strong>${h.name}</strong> ${spkBadge}</td>
+      <td>${h.specialty}</td>
+      <td>${h.city}, ${h.state}</td>
+      <td>${h.territory}</td>
+      <td><span class="decile-badge ${dCls}">${h.decile}</span></td>
+      <td>${segBadge}</td>
+      <td><strong>${fmt(h.trx)}</strong></td>
+      <td>${fmt(h.nrx)}</td>
+      <td>${chgHtml}</td>
+      <td>${h.share.toFixed(1)}%</td>
+      <td>${h.calls_cm}</td>
+      <td>${h.calls_ytd}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${h.last_call.slice(0,10)}</td>
+      <td>${h.new_pts}</td>
+      <td>${spkBadge}</td>
+    </tr>`;
+  }).join('');
+
+  if (dtTable) { dtTable.destroy(); dtTable = null; }
+  dtTable = $('#hcp-datatable').DataTable({
+    pageLength: 15, lengthChange: false,
+    language: { search: '<i class="bi bi-search"></i> ', searchPlaceholder: 'Search HCP, specialty…' },
+    order: [[6,'desc']], dom: '<"d-flex justify-content-between mb-2"f<"dt-info"i>>t<"d-flex justify-content-end mt-2"p>',
+  });
+}
+
+function goToProfile(cid) {
+  document.getElementById('sel-hcp').value = cid;
+  showTab('profile', document.querySelector('[onclick*="profile"]'));
+  loadHCPProfile(cid);
+}
+
+/* ───────────────────────────────────────────────────────────────
+   PRESCRIBER PROFILE TAB
+─────────────────────────────────────────────────────────────── */
+async function loadHCPProfile(cid) {
+  if (!cid) return;
+  const h = await fetch(`/api/hcp/${cid}`).then(r=>r.json());
+  if (h.error) return;
+
+  const segBadge  = `<span class="badge-seg seg-${h.segment.toLowerCase()}">${h.segment}</span>`;
+  const spkBadge  = h.speaker==='Y' ? '<span class="badge bg-warning text-dark ms-2" style="font-size:10px;"><i class="bi bi-mic-fill"></i> Speaker</span>' : '';
+  const decileHtml= `<span class="decile-badge d${h.decile}" style="width:28px;height:28px;font-size:13px;line-height:28px;">${h.decile}</span>`;
+
+  const prodRows  = ['NEXOLID','VERITONEX','CLAROZEPT','DEPTRAZOL'].map(p => {
+    const d = h.products[p] || {trx:0,nrx:0,share:0};
+    const colMap = {NEXOLID:COLORS.NEXOLID, VERITONEX:COLORS.VERITONEX, CLAROZEPT:COLORS.CLAROZEPT, DEPTRAZOL:COLORS.DEPTRAZOL};
+    return `<div class="prod-metric-card">
+      <div class="prod-metric-name" style="color:${colMap[p]}">${p}</div>
+      <div class="prod-metric-row"><span class="lbl">TRx CM</span><span class="val">${fmt(d.trx)}</span></div>
+      <div class="prod-metric-row"><span class="lbl">NRx CM</span><span class="val">${fmt(d.nrx)}</span></div>
+      <div class="prod-metric-row"><span class="lbl">Mkt Share</span><span class="val">${d.share.toFixed(1)}%</span></div>
+      <div class="share-bar-wrap"><div class="share-bar"><div class="share-fill" style="width:${Math.min(d.share*5,100)}%;background:${colMap[p]}"></div></div></div>
+    </div>`;
+  }).join('');
+
+  const callRows = h.calls.map(c => `<tr>
+    <td>${c.date.slice(0,10)}</td><td>${c.type}</td>
+    <td><span class="badge ${c.outcome==='Positive'?'bg-success':'bg-secondary'}" style="font-size:10px;">${c.outcome}</span></td>
+    <td>${c.product}</td><td>${c.samples>0 ? c.samples+'u' : '—'}</td>
+  </tr>`).join('');
+
+  document.getElementById('profile-content').innerHTML = `
+    <div class="hcp-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="hcp-name">${h.name} ${spkBadge}</div>
+          <div class="hcp-meta">${h.specialty} &nbsp;·&nbsp; ${h.address} &nbsp;·&nbsp; NPI: ${h.npi}</div>
+          <div style="display:flex;align-items:center;gap:8px;">${decileHtml} ${segBadge}
+            <span style="font-size:11px;opacity:0.75;">${h.calls_ytd} calls YTD · Last call: ${String(h.last_call).slice(0,10)}</span>
+          </div>
+        </div>
+        <div class="hcp-stat-row">
+          <div class="hcp-stat"><div class="val">${fmt(h.trx)}</div><div class="lbl">CM TRx</div></div>
+          <div class="hcp-stat"><div class="val">${fmt(h.nrx)}</div><div class="lbl">CM NRx</div></div>
+          <div class="hcp-stat"><div class="val">${h.trx_chg>0?'▲':'▼'}${Math.abs(h.trx_chg).toFixed(0)}%</div><div class="lbl">vs Prior</div></div>
+          <div class="hcp-stat"><div class="val">${fmt(h.patients)}</div><div class="lbl">Patients</div></div>
+          <div class="hcp-stat"><div class="val">${fmt(h.new_patients)}</div><div class="lbl">New Pts</div></div>
+          <div class="hcp-stat"><div class="val">${h.calls_cm}</div><div class="lbl">Calls CM</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prod-metrics-grid">${prodRows}</div>
+
+    <div class="row-charts cols-2">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">TRx Trend by Product</div><div class="panel-subtitle">Jan – Jun 2025</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="chart-hcp-trend" height="200"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Call History</div><div class="panel-subtitle">Last 8 interactions</div></div>
+        <div class="panel-body" style="padding:0;overflow-x:auto;">
+          <table class="table table-sm table-hover mb-0" style="font-size:12px;">
+            <thead style="background:var(--iq-dark);color:#fff;">
+              <tr><th>Date</th><th>Type</th><th>Outcome</th><th>Product</th><th>Samples</th></tr>
+            </thead>
+            <tbody>${callRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  // HCP TRx trend chart
+  const tLabels = h.trend['NEXOLID']?.labels || MONTHS;
+  makeChart('chart-hcp-trend','line',{
+    labels: tLabels,
+    datasets: ['NEXOLID','VERITONEX','CLAROZEPT','DEPTRAZOL'].map(p => ({
+      label: p, data: (h.trend[p]||{trx:[0,0,0,0,0,0]}).trx,
+      borderColor: COLORS[p], tension:0.3, borderWidth:2, pointRadius:3,
+    }))
+  },{
+    plugins:{legend:{labels:{font:{size:10}, boxWidth:12}}},
+    scales:{y:{beginAtZero:true, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+}
+
+/* ───────────────────────────────────────────────────────────────
+   ALERTS TAB
+─────────────────────────────────────────────────────────────── */
+async function loadAlertsTab() {
+  allAlerts = await fetch(`/api/alerts?period=${currentPeriod}`).then(r=>r.json());
+  document.getElementById('alert-count-badge').textContent = allAlerts.length;
+  document.getElementById('alert-summary-line').textContent =
+    `${allAlerts.length} active alerts · ${allAlerts.filter(a=>a.priority==='HIGH').length} HIGH priority`;
+  filterAlerts('ALL');
+
+  // Alert type donut
+  const types = {};
+  allAlerts.forEach(a => types[a.type] = (types[a.type]||0)+1);
+  makeChart('chart-alert-types','doughnut',{
+    labels: Object.keys(types).map(t=>t.replace('_',' ')),
+    datasets:[{data: Object.values(types),
+      backgroundColor:['#198754','#dc3545','#fd7e14','#6f42c1'], borderWidth:2, borderColor:'#fff'}]
+  },{cutout:'55%', plugins:{legend:{position:'right', labels:{font:{size:11}, boxWidth:12}}}});
+
+  // Bubble chart: calls vs share
+  const hcps = await fetch(`/api/hcp-tracker`).then(r=>r.json());
+  makeChart('chart-bubble','bubble',{
+    datasets:[{
+      label:'HCPs',
+      data: hcps.slice(0,40).map(h=>({x: h.calls_cm, y: h.share, r: Math.max(3, Math.sqrt(h.trx/4))})),
+      backgroundColor: hcps.slice(0,40).map(h => hexAlpha(h.segment==='A'?COLORS.green:(h.segment==='B'?COLORS.orange:'#6c757d'), 0.7)),
+    }]
+  },{
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:(c)=>`Calls:${c.parsed.x} Share:${c.parsed.y}%`}}},
+    scales:{
+      x:{title:{display:true, text:'CM Calls', font:{size:10}}, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}},
+      y:{title:{display:true, text:'Mkt Share %', font:{size:10}}, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}},
+    },
+  });
+}
+
+function filterAlerts(type, btn) {
+  if (btn) {
+    document.querySelectorAll('#tab-alerts .tool-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const list = type === 'ALL' ? allAlerts : allAlerts.filter(a=>a.type===type);
+  document.getElementById('alert-list').innerHTML = list.length ? list.map(a => `
+    <div class="alert-card" style="border-left-color:${a.color}">
+      <i class="bi ${a.icon} alert-icon" style="color:${a.color}"></i>
+      <div class="alert-body">
+        <div class="alert-title">${a.title} <span class="priority-badge pri-${a.priority.toLowerCase()}">${a.priority}</span></div>
+        <div class="alert-msg">${a.msg}</div>
+      </div>
+      <button class="alert-action-btn" style="background:${a.color}"
+        onclick="${a.cid ? `goToProfile('${a.cid}')` : ''}">${a.action}</button>
+    </div>`) .join('') : '<div class="spinner-overlay">No alerts for this filter</div>';
+}
+
+/* ───────────────────────────────────────────────────────────────
+   SPEAKERS TAB
+─────────────────────────────────────────────────────────────── */
+async function loadSpeakersTab() {
+  const speakers = await fetch(`/api/speakers`).then(r=>r.json());
+
+  // Bubble: programs vs TRx (honorarium = size)
+  makeChart('chart-spk-bubble','bubble',{
+    datasets:[{
+      label:'Speakers',
+      data: speakers.map(s=>({x: s.programs, y: s.honorarium, r: Math.max(5, s.attendees/2)})),
+      backgroundColor: hexAlpha(COLORS.blue, 0.65),
+    }]
+  },{
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:(c,i)=>
+      `${speakers[c.datasetIndex?.data?.indexOf?.(c.raw)??0]?.name||''} · ${c.parsed.x} prog · $${fmt(c.parsed.y)}`}}},
+    scales:{
+      x:{title:{display:true, text:'Programs YTD'}, ticks:{font:{size:10}}, grid:{color:'#eef0f5'}},
+      y:{title:{display:true, text:'Honorarium ($)'}, ticks:{font:{size:10}}, grid:{color:'#eef0f5'}},
+    },
+  });
+
+  // Tier breakdown
+  const t1 = speakers.filter(s=>s.tier==='Tier 1').length;
+  const t2 = speakers.filter(s=>s.tier==='Tier 2').length;
+  makeChart('chart-spk-tier','doughnut',{
+    labels:['Tier 1','Tier 2'],
+    datasets:[{data:[t1,t2], backgroundColor:['#856404','#0c5460'], borderWidth:2, borderColor:'#fff'}]
+  },{cutout:'50%', plugins:{legend:{position:'right', labels:{font:{size:12}, boxWidth:14}}}});
+
+  // Speaker list
+  document.getElementById('speaker-list').innerHTML = speakers.map(s => {
+    const initials = s.name.split(' ').map(w=>w[0]).slice(-2).join('');
+    return `<div class="speaker-card">
+      <div class="speaker-avatar">${initials}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px;">${s.name}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${s.specialty} · ${s.products}</div>
+      </div>
+      <div style="text-align:center;min-width:60px"><div style="font-size:18px;font-weight:700;">${s.programs}</div><div style="font-size:10px;color:var(--text-muted)">Programs YTD</div></div>
+      <div style="text-align:center;min-width:60px"><div style="font-size:18px;font-weight:700;">${s.attendees}</div><div style="font-size:10px;color:var(--text-muted)">Avg Attend</div></div>
+      <div style="text-align:center;min-width:80px"><div style="font-size:16px;font-weight:700;">$${fmt(s.honorarium)}</div><div style="font-size:10px;color:var(--text-muted)">Honorarium YTD</div></div>
+      <span class="tier-badge tier-${s.tier.replace('Tier ','')}">${s.tier}</span>
+      <div style="font-size:11px;color:var(--text-muted)">Last: ${s.last_prog.slice(0,10)}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ───────────────────────────────────────────────────────────────
+   VACCINES BU TAB
+─────────────────────────────────────────────────────────────── */
+async function loadVaccinesTab() {
+  const vax = await fetch('/api/vaccines').then(r=>r.json());
+  const vaccines = vax.vaccines;
+  const labels   = vax.trend_labels;
+
+  // Update banner stats
+  let totalDoses = 0, shingrix = 0, fluarix = 0;
+  Object.entries(vaccines).forEach(([name, d]) => {
+    totalDoses += d.doses.reduce((a,b)=>a+b,0);
+    if (name.includes('Shingrix')) shingrix = d.doses[5];
+    if (name.includes('Fluarix'))  fluarix  = d.doses[5];
+  });
+  document.getElementById('vax-total-doses').textContent = fmt(totalDoses);
+  document.getElementById('vax-shingrix').textContent    = fmt(shingrix);
+  document.getElementById('vax-flu').textContent         = fmt(fluarix);
+  document.getElementById('vax-coverage').textContent    = (vax.territory_coverage.reduce((s,t)=>s+t.coverage_pct,0)/vax.territory_coverage.length).toFixed(1);
+
+  // Trend line
+  makeChart('chart-vax-trend','line',{
+    labels,
+    datasets: Object.entries(vaccines).map(([name, d]) => ({
+      label: name, data: d.doses, borderColor: d.color,
+      backgroundColor: hexAlpha(d.color, 0.08), fill: name.includes('Shingrix'),
+      tension:0.3, borderWidth:2, pointRadius:4,
+    }))
+  },{
+    plugins:{legend:{position:'top', labels:{font:{size:10}, boxWidth:12}}},
+    scales:{y:{beginAtZero:false, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+
+  // Dose mix donut
+  const lastDoses = Object.entries(vaccines).map(([name, d]) => ({name, doses: d.doses[5], color: d.color}));
+  makeChart('chart-vax-mix','doughnut',{
+    labels: lastDoses.map(d=>d.name),
+    datasets:[{data: lastDoses.map(d=>d.doses), backgroundColor: lastDoses.map(d=>d.color), borderWidth:2, borderColor:'#fff'}]
+  },{cutout:'55%', plugins:{legend:{position:'right', labels:{font:{size:10}, boxWidth:12}}}});
+
+  // Coverage by territory
+  const tc = vax.territory_coverage;
+  makeChart('chart-vax-coverage','bar',{
+    labels: tc.map(t=>t.territory.split('-')[0]),
+    datasets:[{label:'Coverage %', data: tc.map(t=>t.coverage_pct),
+      backgroundColor: tc.map(t=> t.coverage_pct>=70 ? hexAlpha(COLORS.green,0.8) : hexAlpha(COLORS.orange,0.8)), borderRadius:4}]
+  },{
+    plugins:{legend:{display:false}},
+    scales:{y:{max:100, grid:{color:'#eef0f5'}, ticks:{font:{size:10}, callback:v=>v+'%'}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+
+  // Cumulative Shingrix vs target
+  const shingrixDoses = vaccines['Shingrix (RZV)']?.doses || [0,0,0,0,0,0];
+  const cumul = shingrixDoses.map((v,i,a) => a.slice(0,i+1).reduce((s,x)=>s+x,0));
+  const target = cumul.map((_,i) => Math.round(shingrixDoses.reduce((s,v)=>s+v,0) * 0.9 / 6 * (i+1)));
+  makeChart('chart-vax-cumul','line',{
+    labels,
+    datasets:[
+      {label:'Actual (Cumul)', data: cumul, borderColor: COLORS.green, backgroundColor: hexAlpha(COLORS.green,0.1), fill:true, tension:0.3, borderWidth:2, pointRadius:4},
+      {label:'Target (Cumul)', data: target, borderColor: '#666', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false},
+    ]
+  },{
+    plugins:{legend:{labels:{font:{size:10}, boxWidth:12}}},
+    scales:{y:{beginAtZero:true, grid:{color:'#eef0f5'}, ticks:{font:{size:10}}}, x:{grid:{display:false}, ticks:{font:{size:10}}}},
+  });
+}
+
+/* ───────────────────────────────────────────────────────────────
+   HELPERS
+─────────────────────────────────────────────────────────────── */
+function hexAlpha(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   INIT
+─────────────────────────────────────────────────────────────── */
+async function init() {
+  // Hide vaccines tab by default
+  document.querySelectorAll('.vaccines-only').forEach(e => e.style.display = 'none');
+
+  // Load territory dropdown
+  const terrs = await fetch('/api/territories').then(r=>r.json());
+  const sel   = document.getElementById('sel-territory');
+  terrs.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id; o.textContent = t.name;
+    sel.appendChild(o);
+  });
+
+  // Load initial data
+  await Promise.all([loadOverviewTab(), loadAlertsTab()]);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
+

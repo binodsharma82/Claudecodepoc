@@ -1,0 +1,93 @@
+Context:
+I am starting a new python project using Azure and OpenAI agents sdk.I need an isolated environment set up before writing any code.I use VS code(or cursor/windsurf) to open notebooks.
+
+Instruction : Create a python virtual environment in the project folder, install the required packages , register it as a Jupyter kernel , configure VS code  to use  it as default python interpreter, and create a .env file for API keys.
+
+Input:
+- Virtual envrionment name : venv(must be in the project root so VS code auto discovers it)
+- Packages : Openai-agents,python-dotenv,ipykernel
+- Register Kernel : python -m ipykernel install --user --name=venv --display name="Python (venv)"
+- Create .vscode/settings.json with "python.defaultInterpreterPath" pointing to venv/bin/python
+- .env file with placeholder OPENAI_API_KEY=your openai-api-key here
+- create .gitignore file that ignore common things
+
+Output:
+- A ready to use project environment with venv created in a project folder,packages installed ,jupyter kernel register, VS code configured to auto select the venv, and .env file created
+---------------------------
+
+# Prompt 2: Plan and Build the IQ2020
+
+> \\\*\\\*Before pasting:\\\*\\\* Activate Plan Mode by pressing `Shift+Tab` twice. You should see "Plan Mode" in the bottom bar. Claude will first think through the design, then ask to start building. When it does, approve it.
+
+Copy and paste the following into Claude Code:
+
+```
+Context: I have an empty project folder with just a .env and .gitignore file. I want to build a IQ2020 web app from scratch.
+
+Instruction: First, plan out the architecture — what components, what data structure, how the UI flows. Then build the entire app. Use Next.js with TypeScript and Tailwind CSS. Save the food log in a local database so it persists across page refreshes. After everything is working, create documentation. Don't ask me any questions — just plan it, build it, and document it.
+
+Input:
+- A simple single-page app — no login, no accounts
+- A search bar to find Territory & product name, with a list of 20+ common Territory and product 
+- The app should run with npm run dev
+
+Output:
+- A written plan of the architecture
+- A fully working IQ2020 UI at localhost:3000
+- A CLAUDE.md file describing the project — what it does, how to run it, tech stack, folder structure, what's coming next. Keep under 200 lines.
+- A docs/ folder with a decision log file named with today's date (e.g., docs/2026-03-15-initial-build.md) recording what was built, what technical choices were made and why.
+- Run the app for user preview at the end.
+```
+
+Temporary Prompt created for Documentation
+
+Context: I have an created the model project and all folder . Donot touch the current application.
+
+Instruction: Evaluate the  architecture — what components, what data structure, how the UI flows. Save the IQ2020 log in /docs/ folder so it persists across page refreshes. After everything is working, create documentation. 
+
+Input:
+- Current code base developed for IQ2020 model
+
+Output:
+- A written plan of the architecture
+- A CLAUDE.md file describing the project — what it does, how to run it, tech stack, folder structure, what's coming next. Keep under 200 lines.
+- A /docs/ folder with a decision log file named with today's date (e.g., docs/2026-03-15-initial-build.md) recording what was built, what technical choices were made and why.
+
+
+
+
+---------------------------
+Context : I am building a sample IQ2020 UI/UX for Commercial Pharma Field reps.
+Instruction : I would like build a sample data model and  referential integrity using HCp360,Calls,Prescriptions, NRx,Trx,Speaker,Master Customer and Products data
+Input : Refer C:\Pythoncode\Claudecode_projects\IQ2020_POC\references\iqvia-iq2020-fact-sheet-2022.pdf to under the expected backend data model
+output : 
+-Sample data and KPI's for front end visualization
+-Save the data in Excel in /sourcedata folder for the POC
+
+
+-----------------------------------------
+
+Context : I am building a model for IQ2020 UI/UX for Commercial Pharma Field reps from AIR/SBU/Vaccines BU's
+Instruction : Recommended Technology for front end HTML/javascript  and application layer using Python
+Input : 
+--Refer C:\Pythoncode\Claudecode_projects\IQ2020_POC\references\iqvia-iq2020-fact-sheet-2022.pdf for the expected UI/UX
+-- Add more Charts based on generic Field reps need from AIR/SBU/Vaccines BU's
+-- use the GSK logo 
+-- Name the Dashboard "Sample IQ2020 Model"
+-- Use the Data model from /sourcedata folder
+output : 
+- IQ2020 UI/UX 
+
+-----------------------
+
+Context : Transform this web application which can works seamlessly on both desktop and mobile devices
+Instruction : Perferred Technology
+-Frontend
+ - React (most popular)
+ - HTML5, CSS3, JavaScript/TypeScript
+-Backend : Python(Flask API)
+
+Input : 
+-- Use the Data model from /sourcedata folder
+output : 
+- IQ2020 UI/UX 
