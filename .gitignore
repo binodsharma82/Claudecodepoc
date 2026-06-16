@@ -24,3 +24,5 @@ Thumbs.db
 # Claude Code internals
 .agents/
 skills-lock.json
+
+.vercel
